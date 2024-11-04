@@ -10,20 +10,22 @@ import time
 
 # Function to display text on the screen
 def display_on_monitor(frame, text="Selected Monitor"):
-    # Define the font, scale, color, and thickness
     font = cv2.FONT_HERSHEY_SIMPLEX
-    scale = 1
+    scale = 0.5  # Adjust scale down to 0.5 for smaller text
     color = (255, 0, 0)  # Red color
-    thickness = 2
+    thickness = 1  # Reduced thickness
 
-    # Get the text size to position it
     text_size = cv2.getTextSize(text, font, scale, thickness)[0]
-    text_x = (frame.shape[1] - text_size[0]) // 2  # Center text horizontally
-    text_y = (frame.shape[0] + text_size[1]) // 2  # Center text vertically
+    text_x = (frame.shape[1] - text_size[0]) // 2
+    text_y = (frame.shape[0] + text_size[1]) // 2
 
     # Put the text on the frame
     cv2.putText(frame, text, (text_x, text_y), font, scale, color, thickness)
-    return frame
+
+    # Optionally resize the frame if you want to display it in a smaller window
+    frame_resized = cv2.resize(frame, (frame.shape[1] // 2, frame.shape[0] // 2))  # Resize to half the original size
+
+    return frame_resized
 
 # Capture the game frame
 def capture_game_frame():
@@ -53,24 +55,25 @@ actions = ["move_left", "move_right", "attack", "dodge", "jump", "special"]
 
 # Function to send actions to the game using PyAutoGUI
 def perform_action(action):
-    if action == "move_left":
-        pyautogui.keyDown('a')  # Move left
-        pyautogui.keyUp('a')
-    elif action == "move_right":
-        pyautogui.keyDown('d')  # Move right
-        pyautogui.keyUp('d')
-    elif action == "attack":
-        pyautogui.keyDown('j')  # Light attack
-        pyautogui.keyUp('j')
-    elif action == "dodge":
-        pyautogui.keyDown('k')  # Dodge
-        pyautogui.keyUp('k')
-    elif action == "jump":
-        pyautogui.keyDown('space')  # Jump
-        pyautogui.keyUp('space')
-    elif action == "special":
-        pyautogui.keyDown('l')  # Special move
-        pyautogui.keyUp('l')
+    pass
+    # if action == "move_left":
+    #     pyautogui.keyDown('a')  # Move left
+    #     pyautogui.keyUp('a')
+    # elif action == "move_right":
+    #     pyautogui.keyDown('d')  # Move right
+    #     pyautogui.keyUp('d')
+    # elif action == "attack":
+    #     pyautogui.keyDown('j')  # Light attack
+    #     pyautogui.keyUp('j')
+    # elif action == "dodge":
+    #     pyautogui.keyDown('space')  # Jump
+    #     pyautogui.keyUp('space')
+    # elif action == "jump":
+    #     pyautogui.keyDown('k')  # Dodge
+    #     pyautogui.keyUp('k')
+    # elif action == "special":
+    #     pyautogui.keyDown('l')  # Special move
+    #     pyautogui.keyUp('l')
 
 # Define a custom Gym environment for RL
 class WukongGameEnv(gym.Env):

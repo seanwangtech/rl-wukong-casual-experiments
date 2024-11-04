@@ -7,6 +7,8 @@ import time
 from wukong_env import BlackMythWukongEnv
 from nn_model import DQNEfficientNet
 from ddqn_agent import DDQNAgent
+import os
+import matplotlib.pyplot as plt
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -32,7 +34,7 @@ agent = DDQNAgent(env.action_space,
 
 episodes = int(1e9)
 batch_size = 32
-
+losses = []
 def obs2stateTensor(obs, show=False):
     obs = obs[:, 420:1500] # choose area for model input
     state = cv2.resize(obs, (224, 224))
@@ -82,17 +84,33 @@ wukong (H, M, S): {(info["wukong_health"], info["wukong_mana"], info["wukong_sta
                 break
         frame_count += 1
         time.sleep(0.005)
-    print('episode done, Training ...')
+    
+    epLosses = []
+    if(len(agent.memory) < batch_size):
+        print(f"Episode Done: {episode}, Total Reward: {total_reward:.2f}, Epsilon: {agent.epsilon:.2f}")
+        continue
+    else:
+        print('episode done, Training ...')
+        
     # Update network after episode
     for i in range(episode_steps):
-        print(f'{i/episode_steps*100:.1f}% done, {i} of {episode_steps}', end='\r')
-        agent.replay(batch_size)
+        loss = agent.replay(batch_size)
         agent.update_epsilon()
+        print(f'{i/episode_steps*100:.1f}% done, {i} of {episode_steps}, loss: {loss:.4f}', end='\r')
+        epLosses.append(loss)
         # if i%20==0:
         #     agent.update_target_net()
-    episode_steps = 0
     # Update target network after every episode
     agent.update_target_net()
-    print(f"Episode Done: {episode}, Total Reward: {total_reward:.2f}, Epsilon: {agent.epsilon:.2f}")
+    print(f"Episode Done: {episode}, Total Reward: {total_reward:.2f}, Epsilon: {agent.epsilon:.2f}, loss: {np.mean(epLosses):.4f}")
+    # save target model
+    folder = f'./ddqn/wukong_off_policy/'
+    os.makedirs(folder, exist_ok=True)
+    torch.save(agent.target_net.state_dict(), f'{folder}/model_{episode}.pth')
+    # draw graph
+    losses.extend(epLosses)
+    plt.plot(losses)
+    plt.draw()
+    plt.pause(0.01)
 
 cv2.destroyAllWindows()

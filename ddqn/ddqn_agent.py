@@ -63,4 +63,5 @@ class DDQNAgent:
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
+        return loss.detach().item()
             

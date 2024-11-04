@@ -23,16 +23,21 @@ joystick.init()
 # Function to display text on the screen
 def display_on_monitor(frame, text="Selected Monitor"):
     font = cv2.FONT_HERSHEY_SIMPLEX
-    scale = 1
+    scale = 0.5  # Adjust scale down to 0.5 for smaller text
     color = (255, 0, 0)  # Red color
-    thickness = 2
+    thickness = 1  # Reduced thickness
 
     text_size = cv2.getTextSize(text, font, scale, thickness)[0]
     text_x = (frame.shape[1] - text_size[0]) // 2
     text_y = (frame.shape[0] + text_size[1]) // 2
 
+    # Put the text on the frame
     cv2.putText(frame, text, (text_x, text_y), font, scale, color, thickness)
-    return frame
+
+    # Optionally resize the frame if you want to display it in a smaller window
+    frame_resized = cv2.resize(frame, (frame.shape[1] // 2, frame.shape[0] // 2))  # Resize to half the original size
+
+    return frame_resized
 
 # Capture the game frame
 def capture_game_frame():
