@@ -200,9 +200,9 @@ class DDQNAgent:
         self.target_net = target_net  # Set target model for DDQN
         self.target_net.load_state_dict(policy_net.state_dict())
         self.target_net.eval()
-        self.epsilon = 1.0  # Epsilon-greedy action selection
+        self.epsilon = 0.4  # Epsilon-greedy action selection
         self.epsilon_decay = 0.995
-        self.epsilon_min = 0.1
+        self.epsilon_min = 0.05
         self.device = device
 
     def remember(self, state, action, reward, next_state, done):
@@ -292,8 +292,11 @@ agent = DDQNAgent(env.action_space,
 episodes = int(1e9)
 batch_size = 4
 
-def obs2stateTensor(obs, device):
-    state = cv2.resize(obs.copy(), (224, 224))
+def obs2stateTensor(obs, device, show=False):
+    obs = obs[:, 420:1500] # choose area for model input
+    state = cv2.resize(obs, (224, 224))
+    if(show): 
+        cv2.imshow('model input', cv2.cvtColor(state, cv2.COLOR_RGB2BGR))
     state = torch.FloatTensor(state).to(device)
     state = state.permute(2, 0, 1)  # (H, W, C) -> C, H, W
     return state
@@ -301,7 +304,7 @@ def obs2stateTensor(obs, device):
 t1 = time.time()
 for episode in range(episodes):
     state = env.reset()
-    state = obs2stateTensor(state, device)
+    state = obs2stateTensor(state, device, show=True)
 
     done = False
     total_reward = 0
@@ -314,7 +317,7 @@ for episode in range(episodes):
             # not pased
             total_reward += reward
             # print('reward',reward)
-            next_state = obs2stateTensor(obs_img, device)
+            next_state = obs2stateTensor(obs_img, device, show=True)
             agent.remember(state, action, reward, next_state, done)
             state = next_state
             agent.replay(batch_size)
@@ -333,9 +336,10 @@ for episode in range(episodes):
 Epsilon: {agent.epsilon:.2f}, \
 wukong (H, M, S): {(info["wukong_health"], info["wukong_mana"], info["wukong_stamina"])}, boss: {info["boss_health"]}')
             cv2.imshow('Game Analysis', cv2.cvtColor(cv2.resize(img, (img.shape[1]//2, img.shape[0]//2)), cv2.COLOR_RGB2BGR))
-            if cv2.waitKey(5) & 0xFF == ord('q'):
+            if cv2.waitKey(5):
                 break
         frame_count += 1
+        time.sleep(0.005)
     time.sleep(0.2)
     if(frame_count>5):
         print(f"Episode Done: {episode}, Total Reward: {total_reward}")
