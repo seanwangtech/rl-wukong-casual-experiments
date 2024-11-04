@@ -22,7 +22,7 @@ class BlackMythWukongEnv(gym.Env):
                  boss_health_color_upperb = (230, 230, 230),
                  ):
         super(BlackMythWukongEnv, self).__init__()
-        self.action_space = spaces.Discrete(4)  # 0: dodge, 1: use_gourd, 2: light_attack, 3: heavy_attack
+        self.action_space = spaces.Discrete(5)  # 0: dodge, 1: use_gourd, 2: light_attack, 3: heavy_attack, 4: do nothing
         self.paused = True
         self.screen_width = 1920  # Set according to your screen resolution
         self.screen_height = 1080
@@ -66,19 +66,24 @@ class BlackMythWukongEnv(gym.Env):
                 pyautogui.click(button='left')  # Light Attack
             elif action == 3:
                 pyautogui.click(button='right') # Heavy Attack
+            elif action == 4:
+                pass # do nothing
 
         # Obtain new observation and calculate reward
         observation = self._get_observation()
-        reward = self._calculate_reward(observation)
+        pixel_count_meta = {
+            'wukong_health': self._extract_wukong_health(observation),
+            'wukong_mana': self._extract_wukong_mana(observation),
+            'wukong_stamina': self._extract_wukong_stamina(observation),
+            'boss_health': self._extract_boss_health(observation)
+        }
+        reward = self._calculate_reward(pixel_count_meta)
         done = False  # Define condition for end of game if possible
 
         return observation, reward, done, {'pasued': self.paused,
-                                            'wukong_health': self._extract_wukong_health(observation),
-                                            'wukong_mana': self._extract_wukong_mana(observation),
-                                            'wukong_stamina': self._extract_wukong_stamina(observation),
-                                            'boss_health': self._extract_boss_health(observation)}
+                                            **pixel_count_meta}
 
-    def _get_observation(self):
+    def _get_observation(self):        
         # Capture screenshot of the game window
         screenshot = pyautogui.screenshot(region=(0, 0, self.screen_width, self.screen_height))
         img = np.array(screenshot)
@@ -86,11 +91,19 @@ class BlackMythWukongEnv(gym.Env):
         # resized_img = cv2.resize(img, (224*2, 224*2))
         return img
 
-    def _calculate_reward(self, observation):
-        # Analyze the screenshot to determine rewards based on health bars
-        boss_health = self._extract_boss_health(observation)
-        player_health = self._extract_wukong_health(observation)
-        reward = (player_health - boss_health) * 10  # Example reward calculation
+    def _calculate_reward(self, meta):
+        # check if the object has attribute '_previous_meta_for_reward'
+        if not hasattr(self, '_previous_meta_for_reward'):
+            self._previous_meta_for_reward = meta
+            return 0
+        # calculate reward
+        previous_meta = self._previous_meta_for_reward
+        self._previous_meta_for_reward = meta
+        previous_boss_health = previous_meta['boss_health']
+        boss_health = meta['boss_health']
+        previous_wukong_health = previous_meta['wukong_health']
+        wukong_health = meta['wukong_health']
+        reward = (previous_boss_health - boss_health) - (previous_wukong_health - wukong_health)*0.1
         return reward
 
     def _extract_boss_health(self, observation):
@@ -244,9 +257,10 @@ for episode in range(episodes):
         if(not info['pasued']):
             # not pased
             total_reward += reward
-            agent.remember(state, action, reward, next_state, done)
-            state = next_state
-            agent.replay(batch_size)
+            print('reward',reward)
+            # agent.remember(state, action, reward, next_state, done)
+            # state = next_state
+            # agent.replay(batch_size)
         # Display real-time window  r
         if(frame_count%20 == 0):
             print(next_state.shape)
