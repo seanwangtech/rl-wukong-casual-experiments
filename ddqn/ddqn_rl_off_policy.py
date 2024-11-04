@@ -22,7 +22,7 @@ learning_rate = 1e-4
 
 # optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 optimizer = torch.optim.Adam([
-    {'params': policy_net.features.parameters(), 'lr': 1e-5},  # Low LR for pre-trained backbone
+    {'params': policy_net.features.parameters(), 'lr': 1e-4},  # Low LR for pre-trained backbone
     {'params': policy_net.fc.parameters(), 'lr': 1e-3}  # Higher LR for classifier
 ],lr=0.001)
 # for param in model.features.parameters():
@@ -30,7 +30,10 @@ optimizer = torch.optim.Adam([
 agent = DDQNAgent(env.action_space, 
                   policy_net=policy_net,
                   target_net=target_net,
-                  optimizer=optimizer, loss_fn=loss_fn, device=device)
+                  optimizer=optimizer, 
+                  loss_fn=loss_fn, 
+                  gamma=0.95,
+                  device=device)
 
 episodes = int(1e9)
 batch_size = 32
@@ -107,6 +110,7 @@ wukong (H,M,S,F): {(info["wukong_health"], info["wukong_mana"], info["wukong_sta
     folder = f'./ddqn/wukong_off_policy/'
     os.makedirs(folder, exist_ok=True)
     torch.save(agent.target_net.state_dict(), f'{folder}/model_{episode}.pth')
+    np.save(f'{folder}/losses_{episode}.npy', np.array(losses))
     # draw graph
     losses.extend(epLosses)
     plt.plot(losses)
