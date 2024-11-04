@@ -8,6 +8,7 @@ import time
 from nn_model import DQNEfficientNet
 from ddqn_agent import DDQNAgent
 import gymnasium as gym
+import matplotlib.pyplot as plt
 
 class DQN(nn.Module):
     def __init__(self, state_dim, action_dim):
@@ -27,7 +28,7 @@ policy_net = DQN(env.observation_space.shape[0],env.action_space.n).to(device)
 target_net = DQN(env.observation_space.shape[0], env.action_space.n).to(device)
 loss_fn = F.mse_loss
 # Assuming `model` is an instance of DQNEfficientNet and learning_rate is defined
-learning_rate = 1e-4
+learning_rate = 1e-6
 
 # optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 optimizer = torch.optim.Adam(policy_net.parameters(),lr=0.001)
@@ -44,7 +45,7 @@ batch_size = 32
 
 def obs2stateTensor(obs, show=False):
     return torch.FloatTensor(obs)
-
+losses = []
 for episode in range(episodes):
     state, _ = env.reset()
     state = obs2stateTensor(state, show=True)
@@ -61,11 +62,12 @@ for episode in range(episodes):
         if(True):
             # not pased
             total_reward += reward
+            # reward = 0 if done else 0.1 # works greatly
+            # reward = -1 if done else 0 # works greatly
             # print('reward',reward)
             next_state = obs2stateTensor(obs, show=True)
             agent.remember(state, action, reward, next_state, done)
             state = next_state
-            total_reward += reward
             episode_steps += 1
         
         
@@ -81,13 +83,18 @@ for episode in range(episodes):
         
     # Update network after episode
     for i in range(episode_steps):
-        agent.replay(batch_size)
+        loss = agent.replay(batch_size)
         agent.update_epsilon()
+        losses.append(loss)
         # if i%20==0:
         #     agent.update_target_net()
     episode_steps = 0
     # Update target network after every episode
     agent.update_target_net()
     print(f"Episode Done: {episode}, Total Reward: {total_reward}, Epsilon: {agent.epsilon:.2f}")
+    plt.plot(losses)
+    plt.yscale('log')
+    plt.draw()
+    plt.pause(0.01)
 
 cv2.destroyAllWindows()
