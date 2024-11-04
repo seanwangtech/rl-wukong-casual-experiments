@@ -12,14 +12,14 @@ class BlackMythWukongEnv(gym.Env):
                  wukong_mana_bar_region=(208, 1002, 600, 1008), # (x1, y1, x2, y2), for 1920x1080, the area is (208, 1002, 600, 1008)
                  wukong_stamina_bar_region=(208, 1016, 600, 1021), # (x1, y1, x2, y2), for 1920x1080, the area is (208, 1016, 600, 1021)
                  boss_health_bar_region=(760, 912, 1172, 922), # (x1, y1, x2, y2), for 1920x1080, the area is (760, 912, 1172, 922)
-                 wukong_health_color_lowerb_BGR=(70,70,170),
-                 wukong_health_color_upperb_BGR=(230,230,230),
-                 wukong_mana_color_lowerb_BGR=(130,80,45),
-                 wukong_mana_color_upperb_BGR=(210,140,85),
-                 wukong_stamina_color_lowerb_BGR=(75,130,110),
-                 wukong_stamina_color_upperb_BGR=(110,165,200),
-                 boss_health_color_lowerb_BGR=(170,170,170),
-                 boss_health_color_upperb_BGR=(230,230,230),
+                 wukong_health_color_lowerb = (170, 70, 70),  # Color is RGB
+                 wukong_health_color_upperb = (230, 230, 230),
+                 wukong_mana_color_lowerb = (45, 80, 130),
+                 wukong_mana_color_upperb = (85, 140, 210),
+                 wukong_stamina_color_lowerb = (110, 130, 75),
+                 wukong_stamina_color_upperb = (200, 165, 110),
+                 boss_health_color_lowerb = (170, 170, 170),
+                 boss_health_color_upperb = (230, 230, 230),
                  ):
         super(BlackMythWukongEnv, self).__init__()
         self.action_space = spaces.Discrete(4)  # 0: dodge, 1: use_gourd, 2: light_attack, 3: heavy_attack
@@ -33,14 +33,14 @@ class BlackMythWukongEnv(gym.Env):
         self.wukong_stamina_bar_region = wukong_stamina_bar_region
         self.boss_health_bar_region = boss_health_bar_region
 
-        self.wukong_health_color_lowerb_BGR = wukong_health_color_lowerb_BGR
-        self.wukong_health_color_upperb_BGR = wukong_health_color_upperb_BGR
-        self.wukong_mana_color_lowerb_BGR = wukong_mana_color_lowerb_BGR
-        self.wukong_mana_color_upperb_BGR = wukong_mana_color_upperb_BGR
-        self.wukong_stamina_color_lowerb_BGR = wukong_stamina_color_lowerb_BGR
-        self.wukong_stamina_color_upperb_BGR = wukong_stamina_color_upperb_BGR
-        self.boss_health_color_lowerb_BGR = boss_health_color_lowerb_BGR
-        self.boss_health_color_upperb_BGR = boss_health_color_upperb_BGR
+        self.wukong_health_color_lowerb = wukong_health_color_lowerb
+        self.wukong_health_color_upperb = wukong_health_color_upperb
+        self.wukong_mana_color_lowerb = wukong_mana_color_lowerb
+        self.wukong_mana_color_upperb = wukong_mana_color_upperb
+        self.wukong_stamina_color_lowerb = wukong_stamina_color_lowerb
+        self.wukong_stamina_color_upperb = wukong_stamina_color_upperb
+        self.boss_health_color_lowerb = boss_health_color_lowerb
+        self.boss_health_color_upperb = boss_health_color_upperb
         
 
         # Listener to pause the environment
@@ -82,7 +82,7 @@ class BlackMythWukongEnv(gym.Env):
         # Capture screenshot of the game window
         screenshot = pyautogui.screenshot(region=(0, 0, self.screen_width, self.screen_height))
         img = np.array(screenshot)
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        # img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB) # no need to do covert, the pyautogui screenshot already in RGB
         # resized_img = cv2.resize(img, (224*2, 224*2))
         return img
 
@@ -97,40 +97,40 @@ class BlackMythWukongEnv(gym.Env):
         # Use image processing to extract the boss's health from the observation
         # Placeholder; adjust this to use the actual boss health bar region
         return self._pixel_count(observation, self.boss_health_bar_region,
-                                 self.boss_health_color_lowerb_BGR, self.boss_health_color_upperb_BGR)
+                                 self.boss_health_color_lowerb, self.boss_health_color_upperb)
 
     def _extract_wukong_health(self, observation):
         # Use image processing to extract the player's health from the observation
         # Placeholder; adjust this to use the actual player health bar region
         return self._pixel_count(observation, self.wukong_health_bar_region,
-                                 self.wukong_health_color_lowerb_BGR, self.wukong_health_color_upperb_BGR)
+                                 self.wukong_health_color_lowerb, self.wukong_health_color_upperb)
         
     def _extract_wukong_mana(self, observation):
         # Use image processing to extract the player's mana from the observation
         # Placeholder; adjust this to use the actual player mana bar region
         return self._pixel_count(observation, self.wukong_mana_bar_region,
-                                 self.wukong_mana_color_lowerb_BGR, self.wukong_mana_color_upperb_BGR)
+                                 self.wukong_mana_color_lowerb, self.wukong_mana_color_upperb)
 
     def _extract_wukong_stamina(self, observation):
         # Use image processing to extract the player's stamina from the observation
         # Placeholder; adjust this to use the actual player stamina bar region  
         return self._pixel_count(observation, self.wukong_stamina_bar_region,
-                                 self.wukong_stamina_color_lowerb_BGR, self.wukong_stamina_color_upperb_BGR)
+                                 self.wukong_stamina_color_lowerb, self.wukong_stamina_color_upperb)
     
     
     
     def _pixel_count(self, img, area, 
-                    lowerb, # lowerb follow cv2.inRange Color BGR
-                    upperb, # lowerb follow cv2.inRange Color BGR
+                    lowerb, # lowerb Color RGB, Following pyautogui.screenshot
+                    upperb, # lowerb Color RGB, Following pyautogui.screenshot
                     threshold=180):
         pixel_mask = cv2.inRange(img[area[1]:area[3], area[0]:area[2]], lowerb, upperb)
         return np.count_nonzero(pixel_mask.mean(axis=0) > threshold)
     
-    def draw_areas(self, img):
+    def draw_areas(self, img): # assume img is RBG
         cv2.rectangle(img, self.wukong_health_bar_region[0:2], self.wukong_health_bar_region[2:4], (0, 255, 0), 2)
-        cv2.rectangle(img, self.wukong_mana_bar_region[0:2], self.wukong_mana_bar_region[2:4], (255, 0, 0), 2)
-        cv2.rectangle(img, self.wukong_stamina_bar_region[0:2], self.wukong_stamina_bar_region[2:4], (0, 255, 255), 2)
-        cv2.rectangle(img, self.boss_health_bar_region[0:2], self.boss_health_bar_region[2:4], (0, 0, 255), 2)
+        cv2.rectangle(img, self.wukong_mana_bar_region[0:2], self.wukong_mana_bar_region[2:4], (0, 0, 255), 2)
+        cv2.rectangle(img, self.wukong_stamina_bar_region[0:2], self.wukong_stamina_bar_region[2:4], (255, 255, 0), 2)
+        cv2.rectangle(img, self.boss_health_bar_region[0:2], self.boss_health_bar_region[2:4], (255, 0, 0), 2)
         return img
 
     
@@ -251,9 +251,10 @@ for episode in range(episodes):
         if(frame_count%20 == 0):
             print(next_state.shape)
             img = next_state 
+            print(img[0][0])
             env.draw_areas(img)
             print(info)
-            cv2.imshow('Game Analysis', cv2.resize(img, (img.shape[1]//2, img.shape[0]//2)))
+            cv2.imshow('Game Analysis', cv2.cvtColor(cv2.resize(img, (img.shape[1]//2, img.shape[0]//2)), cv2.COLOR_RGB2BGR))
             if cv2.waitKey(5) & 0xFF == ord('q'):
                 break
         frame_count += 1
