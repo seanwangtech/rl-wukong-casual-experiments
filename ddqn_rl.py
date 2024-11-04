@@ -60,8 +60,10 @@ class BlackMythWukongEnv(gym.Env):
             # Map actions to game controls
             if action == 0:
                 pyautogui.press('space')       # Dodge
+            # elif action == 1:
+            #     pyautogui.press('r')           # Use Gourd
             elif action == 1:
-                pyautogui.press('r')           # Use Gourd
+                pyautogui.press('ctrl')           # jump
             elif action == 2:
                 pyautogui.click(button='left')  # Light Attack
             elif action == 3:
@@ -83,9 +85,8 @@ class BlackMythWukongEnv(gym.Env):
            and pixel_count_meta['wukong_stamina'] > 0):
             if not self.paused: 
                 done = True
-                cv2.imwrite(f'game_over-{time.time()}.png', cv2.cvtColor(observation, cv2.COLOR_RGB2BGR))
+                # cv2.imwrite(f'game_over-{time.time()}.png', cv2.cvtColor(observation, cv2.COLOR_RGB2BGR))
             self.paused = True
-            print('Game over!', pixel_count_meta)
 
         return observation, reward, done, {'pasued': self.paused,
                                             **pixel_count_meta}
@@ -103,16 +104,18 @@ class BlackMythWukongEnv(gym.Env):
         if not hasattr(self, '_previous_meta_for_reward'):
             self._previous_meta_for_reward = meta
             return 0
-        if(meta['wukong_health'] == 0):
-            return -200
+        # if(meta['wukong_health'] == 0):
+        #     return -200
         # calculate reward
         previous_meta = self._previous_meta_for_reward
         self._previous_meta_for_reward = meta
         previous_boss_health = previous_meta['boss_health']
         boss_health = meta['boss_health']
+        boss_health_reward = (previous_boss_health - boss_health) if boss_health < previous_boss_health else 0
         previous_wukong_health = previous_meta['wukong_health']
         wukong_health = meta['wukong_health']
-        reward = (previous_boss_health - boss_health) - (previous_wukong_health - wukong_health)*0.5
+        wukong_health_reward = (wukong_health - previous_wukong_health)*0.3 if wukong_health < previous_wukong_health else 0
+        reward = boss_health_reward + wukong_health_reward
         return reward
 
     def _extract_boss_health(self, observation):
@@ -326,13 +329,13 @@ for episode in range(episodes):
             t1 = time.time()
             img = obs_img 
             env.draw_areas(img)
-            print(f'FPS: {FPS}, total reward: {total_reward}, info: {info}')
+            print(f'[{"Paused" if info["pasued"] else "Trainning"}] Ep: {episode}, FPS: {FPS:.2f}, total reward: {total_reward:.2f}, wukong (H, M, S): {(info["wukong_health"], info["wukong_mana"], info["wukong_stamina"])}, boss: {info["boss_health"]}')
             cv2.imshow('Game Analysis', cv2.cvtColor(cv2.resize(img, (img.shape[1]//2, img.shape[0]//2)), cv2.COLOR_RGB2BGR))
             if cv2.waitKey(5) & 0xFF == ord('q'):
                 break
         frame_count += 1
-    time.sleep(0.1)
+    time.sleep(0.2)
     if(frame_count>5):
-        print(f"Episode: {episode}, Total Reward: {total_reward}")
+        print(f"Episode Done: {episode}, Total Reward: {total_reward}")
 
 cv2.destroyAllWindows()
