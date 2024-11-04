@@ -1,26 +1,36 @@
 import cv2
 import numpy as np
 import torch
+import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 import time
-from wukong_env import BlackMythWukongEnv
 from nn_model import DQNEfficientNet
 from ddqn_agent import DDQNAgent
+import gymnasium as gym
+
+class DQN(nn.Module):
+    def __init__(self, state_dim, action_dim):
+        super(DQN, self).__init__()
+        self.fc1 = nn.Linear(state_dim, 128)
+        self.fc2 = nn.Linear(128, 128)
+        self.fc3 = nn.Linear(128, action_dim)
+    
+    def forward(self, x):
+        x = torch.relu(self.fc1(x))
+        x = torch.relu(self.fc2(x))
+        return self.fc3(x)
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-env = BlackMythWukongEnv()
-policy_net = DQNEfficientNet(env.action_space.n)
-target_net = DQNEfficientNet(env.action_space.n)
+env =  gym.make('CartPole-v1', render_mode='human')
+policy_net = DQN(env.observation_space.shape[0],env.action_space.n)
+target_net = DQN(env.observation_space.shape[0], env.action_space.n)
 loss_fn = F.mse_loss
 # Assuming `model` is an instance of DQNEfficientNet and learning_rate is defined
 learning_rate = 1e-4
 
 # optimizer = optim.Adam(model.parameters(), lr=learning_rate)
-optimizer = torch.optim.Adam([
-    {'params': policy_net.features.parameters(), 'lr': 1e-5},  # Low LR for pre-trained backbone
-    {'params': policy_net.fc.parameters(), 'lr': 1e-3}  # Higher LR for classifier
-],lr=0.001)
+optimizer = torch.optim.Adam(policy_net.parameters(),lr=0.001)
 # for param in model.features.parameters():
 #     param.requires_grad = False  # Freeze pre-trained layers
 
@@ -30,34 +40,28 @@ agent = DDQNAgent(env.action_space,
                   optimizer=optimizer, loss_fn=loss_fn, device=device)
 
 episodes = int(1e9)
-batch_size = 4
+batch_size = 32
 
 def obs2stateTensor(obs, show=False):
-    obs = obs[:, 420:1500] # choose area for model input
-    state = cv2.resize(obs, (224, 224))
-    if(show): 
-        cv2.imshow('model input', cv2.cvtColor(state, cv2.COLOR_RGB2BGR))
-    state = torch.FloatTensor(state)
-    state = state.permute(2, 0, 1)  # (H, W, C) -> C, H, W
-    return state
+    return torch.FloatTensor(obs)
 
-t1 = time.time()
 for episode in range(episodes):
-    state = env.reset()
+    state, _ = env.reset()
     state = obs2stateTensor(state, show=True)
 
     done = False
     total_reward = 0
     
     frame_count = 0
+    t1 = time.time()
     while not done:
         action = agent.select_action(state)
-        obs_img, reward, done, info = env.step(action)
-        if(not info['pasued']):
+        obs, reward, done, trancated,info  = env.step(action)
+        if(True):
             # not pased
             total_reward += reward
             # print('reward',reward)
-            next_state = obs2stateTensor(obs_img, show=True)
+            next_state = obs2stateTensor(obs, show=True)
             agent.remember(state, action, reward, next_state, done)
             state = next_state
             agent.replay(batch_size)
@@ -67,22 +71,17 @@ for episode in range(episodes):
             total_reward += reward
         
         
-        if time.time() - t1 > 1:
+        if time.time() - t1 > 10:
             FPS = frame_count / (time.time() - t1)
             frame_count = 0
             t1 = time.time()
-            img = obs_img 
-            env.draw_areas(img)
-            print(f'[{"Paused" if info["pasued"] else "Trainning"}] Ep: {episode}, FPS: {FPS:.2f}, total reward: {total_reward:.2f}, \
-Epsilon: {agent.epsilon:.2f}, \
-wukong (H, M, S): {(info["wukong_health"], info["wukong_mana"], info["wukong_stamina"])}, boss: {info["boss_health"]}')
-            cv2.imshow('Game Analysis', cv2.cvtColor(cv2.resize(img, (img.shape[1]//2, img.shape[0]//2)), cv2.COLOR_RGB2BGR))
-            if cv2.waitKey(5):
-                break
+            img = obs 
+            # env.draw_areas(img)
+            print(f'    Ep: {episode}, FPS: {FPS:.2f}, total reward: {total_reward:.2f}, Epsilon: {agent.epsilon:.2f}')
         frame_count += 1
         time.sleep(0.005)
     time.sleep(0.2)
     if(frame_count>5):
-        print(f"Episode Done: {episode}, Total Reward: {total_reward}")
+        print(f"Episode Done: {episode}, Total Reward: {total_reward}, Epsilon: {agent.epsilon:.2f}")
 
 cv2.destroyAllWindows()
