@@ -177,7 +177,9 @@ class DQNEfficientNet(nn.Module):
         self.fc = nn.Sequential(
             nn.Linear(1280, 512),
             nn.ReLU(),
-            nn.Linear(512, num_actions)
+            nn.Linear(512, 128),
+            nn.ReLU(),
+            nn.Linear(128, num_actions)
         )
 
     def forward(self, x):
@@ -297,7 +299,7 @@ def obs2stateTensor(obs, device, show=False):
     state = cv2.resize(obs, (224, 224))
     if(show): 
         cv2.imshow('model input', cv2.cvtColor(state, cv2.COLOR_RGB2BGR))
-    state = torch.FloatTensor(state).to(device)
+    state = torch.FloatTensor(state)
     state = state.permute(2, 0, 1)  # (H, W, C) -> C, H, W
     return state
 
