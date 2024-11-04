@@ -23,8 +23,8 @@ class DQN(nn.Module):
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 env =  gym.make('CartPole-v1', render_mode='human')
-policy_net = DQN(env.observation_space.shape[0],env.action_space.n)
-target_net = DQN(env.observation_space.shape[0], env.action_space.n)
+policy_net = DQN(env.observation_space.shape[0],env.action_space.n).to(device)
+target_net = DQN(env.observation_space.shape[0], env.action_space.n).to(device)
 loss_fn = F.mse_loss
 # Assuming `model` is an instance of DQNEfficientNet and learning_rate is defined
 learning_rate = 1e-4
@@ -85,6 +85,7 @@ for episode in range(episodes):
         agent.update_epsilon()
         # if i%20==0:
         #     agent.update_target_net()
+    episode_steps = 0
     # Update target network after every episode
     agent.update_target_net()
     print(f"Episode Done: {episode}, Total Reward: {total_reward}, Epsilon: {agent.epsilon:.2f}")

@@ -9,9 +9,11 @@ from nn_model import DQNEfficientNet
 from ddqn_agent import DDQNAgent
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
+print('toruch device:',device)
 env = BlackMythWukongEnv()
-policy_net = DQNEfficientNet(env.action_space.n)
-target_net = DQNEfficientNet(env.action_space.n)
+policy_net = DQNEfficientNet(env.action_space.n).to(device)
+target_net = DQNEfficientNet(env.action_space.n).to(device)
 loss_fn = F.mse_loss
 # Assuming `model` is an instance of DQNEfficientNet and learning_rate is defined
 learning_rate = 1e-4
@@ -23,14 +25,13 @@ optimizer = torch.optim.Adam([
 ],lr=0.001)
 # for param in model.features.parameters():
 #     param.requires_grad = False  # Freeze pre-trained layers
-
 agent = DDQNAgent(env.action_space, 
                   policy_net=policy_net,
                   target_net=target_net,
                   optimizer=optimizer, loss_fn=loss_fn, device=device)
 
 episodes = int(1e9)
-batch_size = 4
+batch_size = 32
 
 def obs2stateTensor(obs, show=False):
     obs = obs[:, 420:1500] # choose area for model input
@@ -50,6 +51,7 @@ for episode in range(episodes):
     total_reward = 0
     
     frame_count = 0
+    episode_steps = 0
     while not done:
         action = agent.select_action(state)
         obs_img, reward, done, info = env.step(action)
@@ -60,13 +62,12 @@ for episode in range(episodes):
             next_state = obs2stateTensor(obs_img, show=True)
             agent.remember(state, action, reward, next_state, done)
             state = next_state
-            agent.replay(batch_size)
-            agent.update_epsilon()
-            if(frame_count%20==0):
-                agent.update_target_net()
+            # agent.replay(batch_size)
+            # agent.update_epsilon()
+            # if(frame_count%20==0):
+            #     agent.update_target_net()
             total_reward += reward
-        
-        
+            episode_steps += 1
         if time.time() - t1 > 1:
             FPS = frame_count / (time.time() - t1)
             frame_count = 0
@@ -81,7 +82,17 @@ wukong (H, M, S): {(info["wukong_health"], info["wukong_mana"], info["wukong_sta
                 break
         frame_count += 1
         time.sleep(0.005)
-    time.sleep(0.2)
-    print(f"Episode Done: {episode}, Total Reward: {total_reward}")
+    print('episode done, Training ...')
+    # Update network after episode
+    for i in range(episode_steps):
+        print(f'{i/episode_steps*100:.1f}% done, {i} of {episode_steps}', end='\r')
+        agent.replay(batch_size)
+        agent.update_epsilon()
+        # if i%20==0:
+        #     agent.update_target_net()
+    episode_steps = 0
+    # Update target network after every episode
+    agent.update_target_net()
+    print(f"Episode Done: {episode}, Total Reward: {total_reward:.2f}, Epsilon: {agent.epsilon:.2f}")
 
 cv2.destroyAllWindows()

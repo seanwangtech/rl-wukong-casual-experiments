@@ -10,7 +10,7 @@ class DDQNAgent:
         self.optimizer = optimizer
         self.loss_fn = loss_fn
         self.gamma = gamma
-        self.memory = deque(maxlen=2000)
+        self.memory = deque(maxlen=10000)
         self.policy_net = policy_net
         self.target_net = target_net  # Set target model for DDQN
         self.target_net.load_state_dict(policy_net.state_dict())
@@ -19,7 +19,7 @@ class DDQNAgent:
         self.epsilon_decay = 0.995
         self.epsilon_min = 0.05
         self.device = device
-
+        print(self.device)
     def remember(self, state, action, reward, next_state, done):
         self.memory.append((state, action, reward, next_state, done))
     
