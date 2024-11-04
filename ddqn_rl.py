@@ -22,11 +22,11 @@ class BlackMythWukongEnv(gym.Env):
                  boss_health_color_upperb_BGR=(230,230,230),
                  ):
         super(BlackMythWukongEnv, self).__init__()
-        # self.observation_space = spaces.Box(low=0, high=255, shape=(224, 224, 3), dtype=np.uint8)
         self.action_space = spaces.Discrete(4)  # 0: dodge, 1: use_gourd, 2: light_attack, 3: heavy_attack
         self.paused = True
         self.screen_width = 1920  # Set according to your screen resolution
         self.screen_height = 1080
+        self.observation_space = spaces.Box(low=0, high=255, shape=(self.screen_width, self.screen_height, 3), dtype=np.uint8)
 
         self.wukong_health_bar_region = wukong_health_bar_region
         self.wukong_mana_bar_region = wukong_mana_bar_region
@@ -251,19 +251,6 @@ for episode in range(episodes):
         if(frame_count%20 == 0):
             print(next_state.shape)
             img = next_state 
-            # wukong_life = np.count_nonzero(cv2.inRange(img[982:992, 208:600],np.array([70,70,170]), np.array([230,230,230])).mean(axis=0)>180) # BGR color CV
-            # print('wukong life:',wukong_life)
-            # cv2.rectangle(img, (208, 982), (600, 992), (0, 0, 255), 2) # wukong life bar area 
-            # wukong_mana = np.count_nonzero(cv2.inRange(img[1002:1008, 208:600],np.array([130,80,45]), np.array([210,140,85])).mean(axis=0)>180) #BGR color
-            # print( 'wukong mana:',wukong_mana)
-            # cv2.rectangle(img, (208, 1002), (600, 1008), (0, 0, 255), 2) # wukong mana bar area
-            # wukong_stamina = np.count_nonzero(cv2.inRange(img[1016:1021, 208:600],np.array([75,130,110]), np.array([110,165,200])).mean(axis=0)>180) #BGR color
-            # print( 'wukong stamina:',wukong_stamina)
-            # cv2.rectangle(img, (208, 1016), (600, 1021), (0, 0, 255), 2) # wukong stamina bar
-            
-            # boss_life = np.count_nonzero(cv2.inRange(img[912:922, 760:1172],np.array([170,170,170]), np.array([230,230,230])).mean(axis=0)>180) #BGR color
-            # print( 'boss life:',boss_life)
-            # cv2.rectangle(img, (760, 912), (1172, 922), (0, 0, 255), 2) # Boss life bar
             env.draw_areas(img)
             print(info)
             cv2.imshow('Game Analysis', cv2.resize(img, (img.shape[1]//2, img.shape[0]//2)))
