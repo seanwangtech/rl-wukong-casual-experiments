@@ -12,7 +12,7 @@ class BlackMythWukongEnv(gym.Env):
                  wukong_mana_bar_region=(208, 1002, 600, 1008), # (x1, y1, x2, y2), for 1920x1080, the area is (208, 1002, 600, 1008)
                  wukong_stamina_bar_region=(208, 1016, 600, 1021), # (x1, y1, x2, y2), for 1920x1080, the area is (208, 1016, 600, 1021)
                  boss_health_bar_region=(760, 912, 1172, 922), # (x1, y1, x2, y2), for 1920x1080, the area is (760, 912, 1172, 922)
-                 wukong_health_color_lowerb = (170, 70, 70),  # Color is RGB
+                 wukong_health_color_lowerb = (80, 70, 70),  # Color is RGB
                  wukong_health_color_upperb = (230, 230, 230),
                  wukong_mana_color_lowerb = (45, 80, 130),
                  wukong_mana_color_upperb = (85, 140, 210),
@@ -79,6 +79,13 @@ class BlackMythWukongEnv(gym.Env):
         }
         reward = self._calculate_reward(pixel_count_meta)
         done = False  # Define condition for end of game if possible
+        if(pixel_count_meta['wukong_health'] == 0
+           and pixel_count_meta['wukong_stamina'] > 0):
+            if not self.paused: 
+                done = True
+                cv2.imwrite(f'game_over-{time.time()}.png', cv2.cvtColor(observation, cv2.COLOR_RGB2BGR))
+            self.paused = True
+            print('Game over!', pixel_count_meta)
 
         return observation, reward, done, {'pasued': self.paused,
                                             **pixel_count_meta}
@@ -96,6 +103,8 @@ class BlackMythWukongEnv(gym.Env):
         if not hasattr(self, '_previous_meta_for_reward'):
             self._previous_meta_for_reward = meta
             return 0
+        if(meta['wukong_health'] == 0):
+            return -200
         # calculate reward
         previous_meta = self._previous_meta_for_reward
         self._previous_meta_for_reward = meta
@@ -277,8 +286,8 @@ agent = DDQNAgent(env.action_space,
                   target_net=target_net,
                   optimizer=optimizer, loss_fn=loss_fn, device=device)
 
-episodes = 1000
-batch_size = 32
+episodes = int(1e9)
+batch_size = 4
 
 def obs2stateTensor(obs, device):
     state = cv2.resize(obs.copy(), (224, 224))
@@ -287,7 +296,6 @@ def obs2stateTensor(obs, device):
     return state
 
 t1 = time.time()
-frame_count = 0
 for episode in range(episodes):
     state = env.reset()
     state = obs2stateTensor(state, device)
@@ -295,35 +303,36 @@ for episode in range(episodes):
     done = False
     total_reward = 0
     
+    frame_count = 0
     while not done:
         action = agent.select_action(state)
         obs_img, reward, done, info = env.step(action)
         if(not info['pasued']):
             # not pased
             total_reward += reward
-            print('reward',reward)
+            # print('reward',reward)
             next_state = obs2stateTensor(obs_img, device)
             agent.remember(state, action, reward, next_state, done)
             state = next_state
             agent.replay(batch_size)
             agent.update_epsilon()
-        # Display real-time window 
-        if(frame_count%20 == 0):
-            print(obs_img.shape)
+            if(frame_count%20==0):
+                agent.update_target_net()
+            total_reward += reward
+        
+        if time.time() - t1 > 1:
+            FPS = frame_count / (time.time() - t1)
+            frame_count = 0
+            t1 = time.time()
             img = obs_img 
-            print(img[0][0])
             env.draw_areas(img)
-            print(info)
+            print(f'FPS: {FPS}, total reward: {total_reward}, info: {info}')
             cv2.imshow('Game Analysis', cv2.cvtColor(cv2.resize(img, (img.shape[1]//2, img.shape[0]//2)), cv2.COLOR_RGB2BGR))
             if cv2.waitKey(5) & 0xFF == ord('q'):
                 break
         frame_count += 1
-        if time.time() - t1 > 5:
-            print('FPS:', frame_count / (time.time() - t1))
-            t1 = time.time()
-            frame_count = 0
-        
-
-    print(f"Episode: {episode}, Total Reward: {total_reward}")
+    time.sleep(0.1)
+    if(frame_count>5):
+        print(f"Episode: {episode}, Total Reward: {total_reward}")
 
 cv2.destroyAllWindows()
