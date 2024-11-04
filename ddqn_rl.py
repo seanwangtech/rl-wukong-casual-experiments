@@ -103,7 +103,7 @@ class BlackMythWukongEnv(gym.Env):
         boss_health = meta['boss_health']
         previous_wukong_health = previous_meta['wukong_health']
         wukong_health = meta['wukong_health']
-        reward = (previous_boss_health - boss_health) - (previous_wukong_health - wukong_health)*0.1
+        reward = (previous_boss_health - boss_health) - (previous_wukong_health - wukong_health)*0.5
         return reward
 
     def _extract_boss_health(self, observation):
@@ -178,7 +178,7 @@ import random
 from collections import deque
 
 class DDQNAgent:
-    def __init__(self, action_space, model, optimizer, loss_fn, gamma=0.99):
+    def __init__(self, action_space, model, optimizer, loss_fn, gamma=0.99, device='cpu'):
         self.action_space = action_space
         self.model = model
         self.optimizer = optimizer
@@ -189,6 +189,7 @@ class DDQNAgent:
         self.epsilon = 1.0  # Epsilon-greedy action selection
         self.epsilon_decay = 0.995
         self.epsilon_min = 0.1
+        self.device = device
 
     def remember(self, state, action, reward, next_state, done):
         self.memory.append((state, action, reward, next_state, done))
@@ -196,7 +197,7 @@ class DDQNAgent:
     def act(self, state):
         if random.random() <= self.epsilon:
             return random.choice(range(self.action_space.n))
-        state = torch.FloatTensor(state).unsqueeze(0).to(device)
+        state = torch.FloatTensor(state).unsqueeze(0).to(self.device)
         with torch.no_grad():
             q_values = self.model(state)
         return q_values.argmax().item()
@@ -208,11 +209,11 @@ class DDQNAgent:
         for state, action, reward, next_state, done in batch:
             target = reward
             if not done:
-                next_state = torch.FloatTensor(next_state).unsqueeze(0).to(device)
+                next_state = torch.FloatTensor(next_state).unsqueeze(0).to(self.device)
                 target += self.gamma * self.target_model(next_state).max(1)[0].item()
-            target_f = self.model(torch.FloatTensor(state).unsqueeze(0).to(device))
+            target_f = self.model(torch.FloatTensor(state).unsqueeze(0).to(self.device))
             target_f[0][action] = target
-            loss = self.loss_fn(target_f, torch.FloatTensor(target).unsqueeze(0).to(device))
+            loss = self.loss_fn(target_f, torch.FloatTensor(target).unsqueeze(0).to(self.device))
             self.optimizer.zero_grad()
             loss.backward()
             self.optimizer.step()
@@ -239,32 +240,41 @@ optimizer = torch.optim.Adam([
 # for param in model.features.parameters():
 #     param.requires_grad = False  # Freeze pre-trained layers
 
-agent = DDQNAgent(env.action_space, model, optimizer, loss_fn)
+agent = DDQNAgent(env.action_space, model, optimizer, loss_fn, device=device)
 
 episodes = 1000
 batch_size = 32
+
+def obs2stateTensor(obs, device):
+    state = cv2.resize(obs.copy(), (224, 224))
+    state = torch.FloatTensor(state).to(device)
+    state = state.permute(2, 0, 1)  # (H, W, C) -> C, H, W
+    return state
+
 t1 = time.time()
 frame_count = 0
 for episode in range(episodes):
     state = env.reset()
-    state = torch.FloatTensor(state).to(device)
+    state = obs2stateTensor(state, device)
+
     done = False
     total_reward = 0
     
     while not done:
         action = agent.act(state)
-        next_state, reward, done, info = env.step(action)
+        obs_img, reward, done, info = env.step(action)
         if(not info['pasued']):
             # not pased
             total_reward += reward
             print('reward',reward)
-            # agent.remember(state, action, reward, next_state, done)
-            # state = next_state
-            # agent.replay(batch_size)
+            next_state = obs2stateTensor(obs_img, device)
+            agent.remember(state, action, reward, next_state, done)
+            state = next_state
+            agent.replay(batch_size)
         # Display real-time window  r
         if(frame_count%20 == 0):
-            print(next_state.shape)
-            img = next_state 
+            print(obs_img.shape)
+            img = obs_img 
             print(img[0][0])
             env.draw_areas(img)
             print(info)
