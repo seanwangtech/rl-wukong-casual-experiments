@@ -329,7 +329,9 @@ for episode in range(episodes):
             t1 = time.time()
             img = obs_img 
             env.draw_areas(img)
-            print(f'[{"Paused" if info["pasued"] else "Trainning"}] Ep: {episode}, FPS: {FPS:.2f}, total reward: {total_reward:.2f}, wukong (H, M, S): {(info["wukong_health"], info["wukong_mana"], info["wukong_stamina"])}, boss: {info["boss_health"]}')
+            print(f'[{"Paused" if info["pasued"] else "Trainning"}] Ep: {episode}, FPS: {FPS:.2f}, total reward: {total_reward:.2f}, \
+Epsilon: {agent.epsilon:.2f}, \
+wukong (H, M, S): {(info["wukong_health"], info["wukong_mana"], info["wukong_stamina"])}, boss: {info["boss_health"]}')
             cv2.imshow('Game Analysis', cv2.cvtColor(cv2.resize(img, (img.shape[1]//2, img.shape[0]//2)), cv2.COLOR_RGB2BGR))
             if cv2.waitKey(5) & 0xFF == ord('q'):
                 break
