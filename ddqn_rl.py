@@ -7,13 +7,41 @@ from gymnasium import spaces
 from pynput import keyboard
 
 class BlackMythWukongEnv(gym.Env):
-    def __init__(self):
+    def __init__(self,
+                 wukong_health_bar_region=(208, 982, 600, 992), # (x1, y1, x2, y2), for 1920x1080, the area is (208, 982, 600, 992)
+                 wukong_mana_bar_region=(208, 1002, 600, 1008), # (x1, y1, x2, y2), for 1920x1080, the area is (208, 1002, 600, 1008)
+                 wukong_stamina_bar_region=(208, 1016, 600, 1021), # (x1, y1, x2, y2), for 1920x1080, the area is (208, 1016, 600, 1021)
+                 boss_health_bar_region=(760, 912, 1172, 922), # (x1, y1, x2, y2), for 1920x1080, the area is (760, 912, 1172, 922)
+                 wukong_health_color_lowerb_BGR=(70,70,170),
+                 wukong_health_color_upperb_BGR=(230,230,230),
+                 wukong_mana_color_lowerb_BGR=(130,80,45),
+                 wukong_mana_color_upperb_BGR=(210,140,85),
+                 wukong_stamina_color_lowerb_BGR=(75,130,110),
+                 wukong_stamina_color_upperb_BGR=(110,165,200),
+                 boss_health_color_lowerb_BGR=(170,170,170),
+                 boss_health_color_upperb_BGR=(230,230,230),
+                 ):
         super(BlackMythWukongEnv, self).__init__()
-        self.observation_space = spaces.Box(low=0, high=255, shape=(224, 224, 3), dtype=np.uint8)
+        # self.observation_space = spaces.Box(low=0, high=255, shape=(224, 224, 3), dtype=np.uint8)
         self.action_space = spaces.Discrete(4)  # 0: dodge, 1: use_gourd, 2: light_attack, 3: heavy_attack
         self.paused = True
         self.screen_width = 1920  # Set according to your screen resolution
         self.screen_height = 1080
+
+        self.wukong_health_bar_region = wukong_health_bar_region
+        self.wukong_mana_bar_region = wukong_mana_bar_region
+        self.wukong_stamina_bar_region = wukong_stamina_bar_region
+        self.boss_health_bar_region = boss_health_bar_region
+
+        self.wukong_health_color_lowerb_BGR = wukong_health_color_lowerb_BGR
+        self.wukong_health_color_upperb_BGR = wukong_health_color_upperb_BGR
+        self.wukong_mana_color_lowerb_BGR = wukong_mana_color_lowerb_BGR
+        self.wukong_mana_color_upperb_BGR = wukong_mana_color_upperb_BGR
+        self.wukong_stamina_color_lowerb_BGR = wukong_stamina_color_lowerb_BGR
+        self.wukong_stamina_color_upperb_BGR = wukong_stamina_color_upperb_BGR
+        self.boss_health_color_lowerb_BGR = boss_health_color_lowerb_BGR
+        self.boss_health_color_upperb_BGR = boss_health_color_upperb_BGR
+        
 
         # Listener to pause the environment
         self.listener = keyboard.Listener(on_press=self.on_key_press)
@@ -28,51 +56,83 @@ class BlackMythWukongEnv(gym.Env):
         return self._get_observation()
 
     def step(self, action):
-        if self.paused:
-            return None, 0, False, {}
-
-        # Map actions to game controls
-        if action == 0:
-            pyautogui.press('space')       # Dodge
-        elif action == 1:
-            pyautogui.press('r')           # Use Gourd
-        elif action == 2:
-            pyautogui.click(button='left')  # Light Attack
-        elif action == 3:
-            pyautogui.click(button='right') # Heavy Attack
+        if not self.paused:
+            # Map actions to game controls
+            if action == 0:
+                pyautogui.press('space')       # Dodge
+            elif action == 1:
+                pyautogui.press('r')           # Use Gourd
+            elif action == 2:
+                pyautogui.click(button='left')  # Light Attack
+            elif action == 3:
+                pyautogui.click(button='right') # Heavy Attack
 
         # Obtain new observation and calculate reward
         observation = self._get_observation()
-        print(observation.shape)
         reward = self._calculate_reward(observation)
         done = False  # Define condition for end of game if possible
 
-        return observation, reward, done, {}
+        return observation, reward, done, {'pasued': self.paused,
+                                            'wukong_health': self._extract_wukong_health(observation),
+                                            'wukong_mana': self._extract_wukong_mana(observation),
+                                            'wukong_stamina': self._extract_wukong_stamina(observation),
+                                            'boss_health': self._extract_boss_health(observation)}
 
     def _get_observation(self):
         # Capture screenshot of the game window
         screenshot = pyautogui.screenshot(region=(0, 0, self.screen_width, self.screen_height))
         img = np.array(screenshot)
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        resized_img = cv2.resize(img, (224, 224))
-        return resized_img
+        # resized_img = cv2.resize(img, (224*2, 224*2))
+        return img
 
     def _calculate_reward(self, observation):
         # Analyze the screenshot to determine rewards based on health bars
         boss_health = self._extract_boss_health(observation)
-        player_health = self._extract_player_health(observation)
+        player_health = self._extract_wukong_health(observation)
         reward = (player_health - boss_health) * 10  # Example reward calculation
         return reward
 
     def _extract_boss_health(self, observation):
         # Use image processing to extract the boss's health from the observation
         # Placeholder; adjust this to use the actual boss health bar region
-        return 100  # Example fixed value
+        return self._pixel_count(observation, self.boss_health_bar_region,
+                                 self.boss_health_color_lowerb_BGR, self.boss_health_color_upperb_BGR)
 
-    def _extract_player_health(self, observation):
+    def _extract_wukong_health(self, observation):
         # Use image processing to extract the player's health from the observation
         # Placeholder; adjust this to use the actual player health bar region
-        return 100  # Example fixed value
+        return self._pixel_count(observation, self.wukong_health_bar_region,
+                                 self.wukong_health_color_lowerb_BGR, self.wukong_health_color_upperb_BGR)
+        
+    def _extract_wukong_mana(self, observation):
+        # Use image processing to extract the player's mana from the observation
+        # Placeholder; adjust this to use the actual player mana bar region
+        return self._pixel_count(observation, self.wukong_mana_bar_region,
+                                 self.wukong_mana_color_lowerb_BGR, self.wukong_mana_color_upperb_BGR)
+
+    def _extract_wukong_stamina(self, observation):
+        # Use image processing to extract the player's stamina from the observation
+        # Placeholder; adjust this to use the actual player stamina bar region  
+        return self._pixel_count(observation, self.wukong_stamina_bar_region,
+                                 self.wukong_stamina_color_lowerb_BGR, self.wukong_stamina_color_upperb_BGR)
+    
+    
+    
+    def _pixel_count(self, img, area, 
+                    lowerb, # lowerb follow cv2.inRange Color BGR
+                    upperb, # lowerb follow cv2.inRange Color BGR
+                    threshold=180):
+        pixel_mask = cv2.inRange(img[area[1]:area[3], area[0]:area[2]], lowerb, upperb)
+        return np.count_nonzero(pixel_mask.mean(axis=0) > threshold)
+    
+    def draw_areas(self, img):
+        cv2.rectangle(img, self.wukong_health_bar_region[0:2], self.wukong_health_bar_region[2:4], (0, 255, 0), 2)
+        cv2.rectangle(img, self.wukong_mana_bar_region[0:2], self.wukong_mana_bar_region[2:4], (255, 0, 0), 2)
+        cv2.rectangle(img, self.wukong_stamina_bar_region[0:2], self.wukong_stamina_bar_region[2:4], (0, 255, 255), 2)
+        cv2.rectangle(img, self.boss_health_bar_region[0:2], self.boss_health_bar_region[2:4], (0, 0, 255), 2)
+        return img
+
     
 
 # from efficientnet_pytorch import EfficientNet
@@ -149,6 +209,7 @@ class DDQNAgent:
             
 import torch.nn.functional as F
 import torch.optim as optim
+import time
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 env = BlackMythWukongEnv()
@@ -169,7 +230,8 @@ agent = DDQNAgent(env.action_space, model, optimizer, loss_fn)
 
 episodes = 1000
 batch_size = 32
-
+t1 = time.time()
+frame_count = 0
 for episode in range(episodes):
     state = env.reset()
     state = torch.FloatTensor(state).to(device)
@@ -178,15 +240,41 @@ for episode in range(episodes):
     
     while not done:
         action = agent.act(state)
-        next_state, reward, done, _ = env.step(action)
-        total_reward += reward
-        agent.remember(state, action, reward, next_state, done)
-        state = next_state
-        agent.replay(batch_size)
-        # Display real-time window
-        cv2.imshow('Game Analysis', state)
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
+        next_state, reward, done, info = env.step(action)
+        if(not info['pasued']):
+            # not pased
+            total_reward += reward
+            agent.remember(state, action, reward, next_state, done)
+            state = next_state
+            agent.replay(batch_size)
+        # Display real-time window  r
+        if(frame_count%20 == 0):
+            print(next_state.shape)
+            img = next_state 
+            # wukong_life = np.count_nonzero(cv2.inRange(img[982:992, 208:600],np.array([70,70,170]), np.array([230,230,230])).mean(axis=0)>180) # BGR color CV
+            # print('wukong life:',wukong_life)
+            # cv2.rectangle(img, (208, 982), (600, 992), (0, 0, 255), 2) # wukong life bar area 
+            # wukong_mana = np.count_nonzero(cv2.inRange(img[1002:1008, 208:600],np.array([130,80,45]), np.array([210,140,85])).mean(axis=0)>180) #BGR color
+            # print( 'wukong mana:',wukong_mana)
+            # cv2.rectangle(img, (208, 1002), (600, 1008), (0, 0, 255), 2) # wukong mana bar area
+            # wukong_stamina = np.count_nonzero(cv2.inRange(img[1016:1021, 208:600],np.array([75,130,110]), np.array([110,165,200])).mean(axis=0)>180) #BGR color
+            # print( 'wukong stamina:',wukong_stamina)
+            # cv2.rectangle(img, (208, 1016), (600, 1021), (0, 0, 255), 2) # wukong stamina bar
+            
+            # boss_life = np.count_nonzero(cv2.inRange(img[912:922, 760:1172],np.array([170,170,170]), np.array([230,230,230])).mean(axis=0)>180) #BGR color
+            # print( 'boss life:',boss_life)
+            # cv2.rectangle(img, (760, 912), (1172, 922), (0, 0, 255), 2) # Boss life bar
+            env.draw_areas(img)
+            print(info)
+            cv2.imshow('Game Analysis', cv2.resize(img, (img.shape[1]//2, img.shape[0]//2)))
+            if cv2.waitKey(5) & 0xFF == ord('q'):
+                break
+        frame_count += 1
+        if time.time() - t1 > 5:
+            print('FPS:', frame_count / (time.time() - t1))
+            t1 = time.time()
+            frame_count = 0
+        
 
     print(f"Episode: {episode}, Total Reward: {total_reward}")
 
