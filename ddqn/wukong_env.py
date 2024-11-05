@@ -79,15 +79,15 @@ class BlackMythWukongEnv(gym.Env):
             #     pyautogui.press('r')           # Use Gourd
             elif action == 1:
                 pyautogui.click(button='left')         # light attach
-                time.sleep(0.5)
+                time.sleep(0.2)
                 pyautogui.click(button='right')        # heavy attack
-                time.sleep(1.0)
+                time.sleep(0.2)
             elif action == 2:
                 pyautogui.click(button='left')  # Light Attack
-                time.sleep(0.5)
+                time.sleep(0.2)
             elif action == 3:
                 pyautogui.click(button='right') # Heavy Attack
-                time.sleep(1.2)
+                time.sleep(0.2)
             elif action == 4:
                 time.sleep(0.1) # do nothing
 
@@ -102,7 +102,7 @@ class BlackMythWukongEnv(gym.Env):
             'boss_health': self._extract_boss_health(observation)
         }
         pixel_count_meta['wukong_focus'] = self._calc_wukong_focus(pixel_count_meta['wukong_focus_bar'], pixel_count_meta['wukong_focus_point']) 
-        reward = self._calculate_reward(pixel_count_meta)
+        reward = self._calculate_reward(pixel_count_meta, action)
         done = False  # Define condition for end of game if possible
         if(pixel_count_meta['wukong_health'] == 0
            and pixel_count_meta['wukong_stamina'] > 0):
@@ -121,18 +121,17 @@ class BlackMythWukongEnv(gym.Env):
         # img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB) # no need to do covert, the pyautogui screenshot already in RGB
         # resized_img = cv2.resize(img, (224*2, 224*2))
         return img
-
-    def _calculate_reward(self, meta):
+    def _calculate_reward(self, meta, action, scale=0.01):
+        return self._calculate_reward_no_scale(meta, action)*scale # scale the reward around -1 to 1 to matach bettwer with random nn initialization
+    def _calculate_reward_no_scale(self, meta, action):
         # check if the object has attribute '_previous_meta_for_reward'
         if not hasattr(self, '_previous_meta_for_reward'):
             self._previous_meta_for_reward = meta
             return 0
-        if(meta['wukong_health'] == 0):
-            return 0
+
         # if(meta['wukong_health'] == 0):
         #     return -200
         # calculate reward
-        step_reward = 0.1
         previous_meta = self._previous_meta_for_reward
         self._previous_meta_for_reward = meta
         previous_boss_health = previous_meta['boss_health']
@@ -140,8 +139,26 @@ class BlackMythWukongEnv(gym.Env):
         boss_health_reward = (previous_boss_health - boss_health) if boss_health - previous_boss_health < -2 else 0
         previous_wukong_health = previous_meta['wukong_health']
         wukong_health = meta['wukong_health']
-        wukong_health_reward = (wukong_health - previous_wukong_health) if wukong_health - previous_wukong_health <-2 else 0
-        reward = boss_health_reward + wukong_health_reward + step_reward
+        wukong_health_reward = (wukong_health - previous_wukong_health)*4 if wukong_health - previous_wukong_health <-2 else 0 # increase wukong health loss panalty
+        wukong_focus_previous = previous_meta['wukong_focus']
+        wukong_focus = meta['wukong_focus']
+        wukong_focus_reward = (wukong_focus - wukong_focus_previous)*0.4 if wukong_focus - wukong_focus_previous > 2 else 0
+        if(action == 0):
+            # doage. Encourage player to dodge
+            wukong_focus_reward *=5
+            wukong_focus_reward += 0.1
+            
+        wukong_calmdown_reward = 0
+        if(action == 4):
+            # do nothing action, calmdown reward to allow stamina regen
+            wukong_calmdown_reward = 0.2
+        
+        if(meta['wukong_health'] == 0):
+            return wukong_health_reward
+        if(meta['boss_health'] == 0):
+            ## could be result of boss bar suddently disappear after game, when failed to kill boss. Anyway, we give it 0 to avoid significant reward error
+            return 0 
+        reward = boss_health_reward + wukong_health_reward + wukong_focus_reward + wukong_calmdown_reward
         return reward
 
     def _extract_boss_health(self, observation):

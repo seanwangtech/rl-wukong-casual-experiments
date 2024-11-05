@@ -45,6 +45,7 @@ def obs2stateTensor(obs, show=False):
         cv2.imshow('model input', cv2.cvtColor(state, cv2.COLOR_RGB2BGR))
     state = torch.FloatTensor(state)
     state = state.permute(2, 0, 1)  # (H, W, C) -> C, H, W
+    state = (state - state.mean())/state.std() # normalize
     return state
 
 t1 = time.time()
@@ -71,7 +72,6 @@ for episode in range(episodes):
             # agent.update_epsilon()
             # if(frame_count%20==0):
             #     agent.update_target_net()
-            total_reward += reward
             episode_steps += 1
         if time.time() - t1 > 1:
             FPS = frame_count / (time.time() - t1)

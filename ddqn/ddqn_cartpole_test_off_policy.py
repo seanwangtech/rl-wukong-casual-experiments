@@ -62,7 +62,7 @@ for episode in range(episodes):
         if(True):
             # not pased
             total_reward += reward
-            # reward = 0 if done else 0.1 # works greatly
+            reward = 0 if done else 0.1 # works greatly
             # reward = -1 if done else 0 # works greatly
             # print('reward',reward)
             next_state = obs2stateTensor(obs, show=True)
