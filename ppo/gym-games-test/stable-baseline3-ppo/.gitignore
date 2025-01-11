@@ -1,4 +1,5 @@
 trains
-trains-*
+*/*.csv
+*/*.pth
 **/events.out*
 ppo_kaboom.zip
