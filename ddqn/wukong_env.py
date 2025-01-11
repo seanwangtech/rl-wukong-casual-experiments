@@ -30,7 +30,7 @@ class BlackMythWukongEnv(gym.Env):
                  boss_health_color_upperb = (250, 230, 230),
                  ):
         super(BlackMythWukongEnv, self).__init__()
-        self.action_space = spaces.Discrete(5)  # 0: dodge, 1: use_gourd, 2: light_attack, 3: heavy_attack, 4: do nothing
+        self.action_space = spaces.Discrete(4)  # 0: dodge, 1: do nothing, 2: light_attack, 3: heavy_attack, 4: others
         self.paused = True
         self.screen_width = 1920  # Set according to your screen resolution
         self.screen_height = 1080
@@ -75,21 +75,22 @@ class BlackMythWukongEnv(gym.Env):
             if action == 0:
                 pyautogui.press('space')       # Dodge
                 time.sleep(0.2)
+            elif action == 1:
+                time.sleep(0.1) # do nothing
             # elif action == 1:
             #     pyautogui.press('r')           # Use Gourd
-            elif action == 1:
-                pyautogui.click(button='left')         # light attach
-                time.sleep(0.2)
-                pyautogui.click(button='right')        # heavy attack
-                time.sleep(0.2)
             elif action == 2:
                 pyautogui.click(button='left')  # Light Attack
-                time.sleep(0.2)
+                time.sleep(0.1)
+                # time.sleep(0.8)
+            # elif action == 3:
+            #     pyautogui.click(button='left')         # light attach
+            #     time.sleep(0.5)
+            #     pyautogui.click(button='left')        # light attack
+            #     time.sleep(0.8)
             elif action == 3:
                 pyautogui.click(button='right') # Heavy Attack
-                time.sleep(0.2)
-            elif action == 4:
-                time.sleep(0.1) # do nothing
+                time.sleep(0.1)
 
         # Obtain new observation and calculate reward
         observation = self._get_observation()
@@ -144,14 +145,14 @@ class BlackMythWukongEnv(gym.Env):
         wukong_focus = meta['wukong_focus']
         wukong_focus_reward = (wukong_focus - wukong_focus_previous)*0.4 if wukong_focus - wukong_focus_previous > 2 else 0
         if(action == 0):
-            # doage. Encourage player to dodge
+            # doage. Encourage player to dodge. This encourage is not precise, because dodge may be 
             wukong_focus_reward *=5
             wukong_focus_reward += 0.1
             
         wukong_calmdown_reward = 0
-        if(action == 4):
-            # do nothing action, calmdown reward to allow stamina regen
-            wukong_calmdown_reward = 0.2
+        if(action == 1):
+            # do nothing action, calmdown reward to allow stamina regen, encourage player not to do anything when action is in process
+            wukong_calmdown_reward = 0.0001
         
         if(meta['wukong_health'] == 0):
             return wukong_health_reward
