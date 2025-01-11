@@ -92,7 +92,7 @@ def obs2stateTensor(obs, show=False):
 t1 = time.time()
 for episode in range(episodes):
     state, _ = env.reset()
-    state = obs2stateTensor(state, show=True)
+    state = obs2stateTensor(state, show=False)
 
     done = False
     total_reward = 0
