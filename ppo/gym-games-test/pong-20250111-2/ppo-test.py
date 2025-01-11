@@ -40,7 +40,7 @@ agent = PPOAgent(
 
 
 episodes = int(1e9)
-batch_size = 32
+batch_size = 256
 update_epochs = 10
 policy_losses = []
 value_losses = []

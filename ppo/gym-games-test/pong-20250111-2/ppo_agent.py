@@ -76,9 +76,11 @@ class PPOAgent:
         states, actions, returns, old_log_probs, advantages = self.process_memory()
 
         for _ in range(epochs):
+            inds = np.arange(len(states))
+            np.random.shuffle(inds)
             for i in range(0, len(states), batch_size):
                 # Sample a mini-batch
-                batch_indices = slice(i, i + batch_size)
+                batch_indices = inds[i: i + batch_size]
                 batch_states = states[batch_indices]
                 batch_actions = actions[batch_indices]
                 batch_returns = returns[batch_indices]
