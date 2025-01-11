@@ -1,0 +1,13 @@
+opencv-python==4.10.0.84
+mss==9.0.2
+pyautogui
+gym==0.26.2
+stable-baselines3==2.3.2
+numpy==2.1.2
+torch==2.5.1
+pynput==1.7.7
+shimmy
+gymnasium
+pygame
+efficientnet-pytorch
+timm

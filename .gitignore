@@ -1,0 +1,6 @@
+/.venv
+/.vscode
+__pycache__
+model_*.pth
+losses_*.npy
+/test
