@@ -51,12 +51,12 @@ class PPOAgent:
         states, actions, rewards, log_probs, values, dones = zip(*self.memory)
         with torch.no_grad():
             returns = []
-            G = 0
-            # Compute returns for each timestep
-            for reward, done in zip(reversed(rewards), reversed(dones)):
-                G = reward + self.gamma * G * (1 - done)
-                returns.append(G)
-            returns.reverse()
+            # G = 0
+            # # Compute returns for each timestep
+            # for reward, done in zip(reversed(rewards), reversed(dones)):
+            #     G = reward + self.gamma * G * (1 - done)
+            #     returns.append(G)
+            # returns.reverse()
             
             # Compute advantages using GAE
             advantages = self.compute_gae(rewards, values, dones)
@@ -67,7 +67,8 @@ class PPOAgent:
             # Prepare tensors
             states = torch.stack(states).to(self.device)
             actions = torch.LongTensor(actions).to(self.device)
-            returns = torch.FloatTensor(returns).to(self.device)
+            # returns = torch.FloatTensor(returns).to(self.device)
+            returns = advantages + torch.FloatTensor(values).to(self.device)
             old_log_probs = torch.FloatTensor(log_probs).to(self.device)
 
         return states, actions, returns, old_log_probs, advantages
