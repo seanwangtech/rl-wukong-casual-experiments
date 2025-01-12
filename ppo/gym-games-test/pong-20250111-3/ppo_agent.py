@@ -76,8 +76,13 @@ class PPOAgent:
         states, actions, returns, old_log_probs, advantages = self.process_memory()
 
         for _ in range(epochs):
-            inds = np.arange(len(states))
+            inds =np.array(range(len(states)))
+            if(len(inds) > batch_size and len(inds) % batch_size != 0):
+                # padding with duplicate random samples to make sure each batch has the same number of samples
+                padding_size = batch_size - len(inds)%batch_size
+                inds = np.concatenate((inds, np.random.choice(inds,padding_size)))
             np.random.shuffle(inds)
+            
             for i in range(0, len(states), batch_size):
                 # Sample a mini-batch
                 batch_indices = inds[i: i + batch_size]
@@ -86,6 +91,7 @@ class PPOAgent:
                 batch_returns = returns[batch_indices]
                 batch_old_log_probs = old_log_probs[batch_indices]
                 batch_advantages = advantages[batch_indices]
+                print(len(batch_indices))
 
                 # Calculate new log probabilities and entropy
                 logits,values = self.model(batch_states)
