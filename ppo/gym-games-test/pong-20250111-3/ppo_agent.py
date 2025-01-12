@@ -5,7 +5,7 @@ from collections import deque
 import numpy as np
 
 class PPOAgent:
-    def __init__(self, action_space, model, optimizer, gamma=0.99, lam=0.95, clip_epsilon=0.2, device='cpu'):
+    def __init__(self, action_space, model, optimizer, gamma=0.99, lam=0.95, clip_epsilon=0.2, device='cpu', norm_adv=True):
         self.action_space = action_space
         self.model = model
         self.optimizer = optimizer
@@ -13,6 +13,7 @@ class PPOAgent:
         self.lam = lam  # Lambda for GAE
         self.clip_epsilon = clip_epsilon  # Clipping range for policy loss
         self.device = device
+        self.norm_adv = norm_adv
 
         # Stores episode data: states, actions, log probabilities, rewards, values, and dones
         self.memory = []
@@ -59,9 +60,9 @@ class PPOAgent:
             
             # Compute advantages using GAE
             advantages = self.compute_gae(rewards, values, dones)
-            # Normalize advantages for training stability
             advantages = torch.FloatTensor(advantages).to(self.device)
-            advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
+            # Normalize advantages for training stability
+            # advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
             
             # Prepare tensors
             states = torch.stack(states).to(self.device)
@@ -91,7 +92,9 @@ class PPOAgent:
                 batch_returns = returns[batch_indices]
                 batch_old_log_probs = old_log_probs[batch_indices]
                 batch_advantages = advantages[batch_indices]
-                print(len(batch_indices))
+                # Normalize advantages for training stability
+                if self.norm_adv:
+                    batch_advantages = (batch_advantages - batch_advantages.mean()) / (batch_advantages.std() + 1e-8)
 
                 # Calculate new log probabilities and entropy
                 logits,values = self.model(batch_states)
