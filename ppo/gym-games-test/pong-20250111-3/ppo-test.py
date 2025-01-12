@@ -20,7 +20,7 @@ import os
 import pandas as pd
 
 from ppo_agent import PPOAgent
-from nn_model20 import PPOnn
+from nn_model23 import PPOnn
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print('torch device:',device)
@@ -38,6 +38,7 @@ def make_env(env_id):
     env = gym.wrappers.ResizeObservation(env, (84, 84))
     env = gym.wrappers.GrayScaleObservation(env)
     env = gym.wrappers.FrameStack(env, 4)
+    # not normalized yet. need to normalize before feed the obs to model. 
     return env
 
 # env = gym.make("PongNoFrameskip-v4", render_mode='rgb_array')
@@ -85,6 +86,7 @@ def obs2stateTensor(obs, show=False):
         cv2.imshow('model input', state[3])
         cv2.waitKey(1)
     state = torch.FloatTensor(state)
+    state = state/255.0
     # state = state.permute(2, 0, 1).contiguous()  # (H, W, C) -> C, H, W
     # state = (state - state.mean())/state.std() # normalize
     return state
