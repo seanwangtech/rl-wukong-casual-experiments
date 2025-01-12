@@ -117,19 +117,43 @@ def layer_init(layer, std=np.sqrt(2), bias_const=0.0):
 class Agent(nn.Module):
     def __init__(self, envs):
         super().__init__()
+        # self.network = nn.Sequential(
+        #     layer_init(nn.Conv2d(4, 32, 8, stride=4)),
+        #     nn.ReLU(),
+        #     layer_init(nn.Conv2d(32, 64, 4, stride=2)),
+        #     nn.ReLU(),
+        #     layer_init(nn.Conv2d(64, 64, 3, stride=1)),
+        #     nn.ReLU(),
+        #     nn.Flatten(),
+        #     layer_init(nn.Linear(64 * 7 * 7, 512)),
+        #     nn.ReLU(),
+        # )
+        # self.actor = layer_init(nn.Linear(512, envs.single_action_space.n), std=0.01)
+        # self.critic = layer_init(nn.Linear(512, 1), std=1)
+        
+                
         self.network = nn.Sequential(
-            layer_init(nn.Conv2d(4, 32, 8, stride=4)),
+            nn.Conv2d(4, 32, kernel_size=8, stride=4),
             nn.ReLU(),
-            layer_init(nn.Conv2d(32, 64, 4, stride=2)),
+            nn.Conv2d(32, 64, kernel_size=4, stride=2),
             nn.ReLU(),
-            layer_init(nn.Conv2d(64, 64, 3, stride=1)),
+            nn.Conv2d(64, 64, kernel_size=3, stride=1),
             nn.ReLU(),
             nn.Flatten(),
-            layer_init(nn.Linear(64 * 7 * 7, 512)),
+            nn.Linear(3136, 512),
             nn.ReLU(),
         )
-        self.actor = layer_init(nn.Linear(512, envs.single_action_space.n), std=0.01)
-        self.critic = layer_init(nn.Linear(512, 1), std=1)
+        self.actor = nn.Sequential(
+            nn.Linear(512, 128),
+            nn.ReLU(),
+            nn.Linear(128, envs.single_action_space.n),
+        )
+        
+        self.critic = nn.Sequential(
+            nn.Linear(512, 128),
+            nn.ReLU(),
+            nn.Linear(128, 1),
+        )
 
     def get_value(self, x):
         return self.critic(self.network(x / 255.0))
@@ -303,7 +327,7 @@ if __name__ == "__main__":
 
                 optimizer.zero_grad()
                 loss.backward()
-                nn.utils.clip_grad_norm_(agent.parameters(), args.max_grad_norm)
+                # nn.utils.clip_grad_norm_(agent.parameters(), args.max_grad_norm)
                 optimizer.step()
 
             if args.target_kl is not None and approx_kl > args.target_kl:
