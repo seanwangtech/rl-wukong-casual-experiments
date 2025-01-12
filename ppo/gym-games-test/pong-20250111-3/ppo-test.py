@@ -57,8 +57,8 @@ agent = PPOAgent(
 )
 
 episodes = int(1e9)
-batch_size = 256
-update_epochs = 10
+batch_size = 32
+update_epochs = 4
 
 
 writer = SummaryWriter(f"runs/{env_id}-{time.strftime('%Y%m%d-%H_%M_%S',time.localtime())}")
