@@ -15,7 +15,7 @@ class PPOAgent:
         self.device = device
         self.norm_adv = norm_adv
 
-        # Stores episode data: states, actions, log probabilities, rewards, values, and dones
+        # Stores episode data: states, actions, log probabilities, rewards, values, and next_dones
         self.memory = []
 
     def remember(self, state, action, reward, log_prob, value, done):
@@ -35,31 +35,31 @@ class PPOAgent:
 
         return action.item(), log_prob, value.item()
 
-    def compute_gae(self, rewards, values, dones):
+    def compute_gae(self, rewards, values, next_dones):
         values = list(values) + [0]  # Convert values to a list before concatenation
         advantages = []
         gae = 0
         for step in reversed(range(len(rewards))):
-            delta = rewards[step] + self.gamma * values[step + 1] * (1 - dones[step]) - values[step]
-            gae = delta + self.gamma * self.lam * (1 - dones[step]) * gae
+            delta = rewards[step] + self.gamma * values[step + 1] * (1 - next_dones[step]) - values[step]
+            gae = delta + self.gamma * self.lam * (1 - next_dones[step]) * gae
             advantages.append(gae)
         advantages.reverse()
         return advantages
 
     def process_memory(self):
         """Prepare memory for optimization."""
-        states, actions, rewards, log_probs, values, dones = zip(*self.memory)
+        states, actions, rewards, log_probs, values, next_dones = zip(*self.memory)
         with torch.no_grad():
             returns = []
             # G = 0
             # # Compute returns for each timestep
-            # for reward, done in zip(reversed(rewards), reversed(dones)):
+            # for reward, done in zip(reversed(rewards), reversed(next_dones)):
             #     G = reward + self.gamma * G * (1 - done)
             #     returns.append(G)
             # returns.reverse()
             
             # Compute advantages using GAE
-            advantages = self.compute_gae(rewards, values, dones)
+            advantages = self.compute_gae(rewards, values, next_dones)
             advantages = torch.FloatTensor(advantages).to(self.device)
             # Normalize advantages for training stability
             # advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)

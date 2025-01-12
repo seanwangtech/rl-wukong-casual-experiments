@@ -94,20 +94,21 @@ for episode in range(episodes):
     state, _ = env.reset()
     state = obs2stateTensor(state, show=False)
 
-    done = False
+    next_done = False
     total_reward = 0
     
     frame_count = 0
     episode_steps = 0
-    while not done:
+    while not next_done:
         action, log_prob, value = agent.select_action(state)
-        obs_img, reward, done, truncated,  info = env.step(action)
+        obs_img, reward, terminated, truncated,  info = env.step(action)
         if(True):
             # not pased
             total_reward += reward
+            next_done = terminated or truncated
             # print('reward',reward)
             next_state = obs2stateTensor(obs_img, show=False)
-            agent.remember(state, action, reward, log_prob, value, done or truncated)
+            agent.remember(state, action, reward, log_prob, value, next_done)
             state = next_state
             # agent.replay(batch_size)
             # agent.update_epsilon()
