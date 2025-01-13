@@ -21,9 +21,11 @@ returns.reverse()
 ## plots
 
 ![trains history](./fig/train-result-and-algoirthm-tune.png)
+The notes for above graph, in the order of time.  
 - Before repair issues
 - Nomalize the advance in mini-batch instead of whole episode and fixed the way to calculate returns
 - change (batch_size:256, update_epochs:10) to (batch_size:32, update_epochs:4)
 - Initialize model weights by using torch.nn.init.orthogonal_()
 - Normalize the input by divide x by 255.0
 - revised entropy loss coefficient from 0.1 to 0.01
+- Increase the batch_size from 32 to 128 to stablize the output. 
