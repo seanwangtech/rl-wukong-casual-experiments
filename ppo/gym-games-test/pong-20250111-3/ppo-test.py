@@ -127,13 +127,15 @@ for episode in range(episodes):
         # time.sleep(0.005)
     
     print('episode done, Training ...')
-    policy_loss, value_loss = agent.optimize(epochs=update_epochs, batch_size=batch_size)
+    policy_loss, value_loss, entropy_loss, clipfrac = agent.optimize(epochs=update_epochs, batch_size=batch_size)
     
     print(f"Episode Done: {episode}, Total Reward: {total_reward:.2f}, policy loss: {policy_loss:.4f}, value loss: {value_loss:.4f}")
     writer.add_scalar("charts/episode_reward", total_reward, episode)
     writer.add_scalar("charts/episode_length", episode_steps, episode)
     writer.add_scalar("losses/policy_loss", policy_loss, episode)
     writer.add_scalar("losses/value_loss", value_loss, episode)
+    writer.add_scalar("losses/entropy_loss", entropy_loss, episode)
+    writer.add_scalar("losses/clipfrac", clipfrac, episode)
     # save target model
     if(episode%10==0):
         folder = f'{os.path.dirname(__file__)}/trains/'

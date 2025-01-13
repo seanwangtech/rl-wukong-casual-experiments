@@ -76,7 +76,7 @@ class PPOAgent:
     def optimize(self, epochs=4, batch_size=32):
         """Optimize policy and value networks using PPO update."""
         states, actions, returns, old_log_probs, advantages = self.process_memory()
-
+        clipfracs = []
         for _ in range(epochs):
             inds =np.array(range(len(states)))
             if(len(inds) > batch_size and len(inds) % batch_size != 0):
@@ -107,7 +107,8 @@ class PPOAgent:
                 ratio = (new_log_probs - batch_old_log_probs).exp()
                 clipped_ratio = torch.clamp(ratio, 1 - self.clip_epsilon, 1 + self.clip_epsilon)
                 policy_loss = -torch.min(ratio * batch_advantages, clipped_ratio * batch_advantages).mean()
-
+                with torch.no_grad():
+                    clipfracs += [((ratio - 1.0).abs() > self.clip_epsilon).float().mean().item()]
                 # Value loss (Mean Squared Error between returns and values)
                 values = values.squeeze(-1)
                 value_loss = F.mse_loss(values, batch_returns)
@@ -123,6 +124,6 @@ class PPOAgent:
         # Clear memory after each optimization step
         self.memory = []
 
-        return policy_loss.item(), value_loss.item()
+        return policy_loss.item(), value_loss.item(), entropy.item(), np.mean(clipfracs)
     
   
