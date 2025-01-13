@@ -38,3 +38,48 @@ The notes for below plots, in the order of time.
 - revised entropy coefficient 0.01 - first run 
 - revised entropy coefficient 0.01 - second run
 - revised entropy coefficient 0.01 - third run
+
+# Sean implementation vs clearRL
+
+Sean's PPO implemented to play black myth game. This game play won't wait model training until one round completed. Therefore, the data collection always includes a whole round game. The game cannot be paused during one round. Therefore, the policy update process is:
+1. play game by using current policy and collect whole round of game play data 
+2. optimize the plicy and value network with PPO algoirthm. 
+3. repeat step 1
+
+In this case, each iteration comes with diffent length of training data (episode). If there is extra long episode, in the case of fixed mini-batch size, the long episode could be used update policy extensive times. The model may be overfitting to the episode and result high variance during the training. 
+- Large batch size has small variance, but slow to train, long lead time. 
+- Small batch has large variance, but fast, short lead time. 
+- Different size of episode can result in overfitting to long episode and result in unstable. 
+
+To optimize the training, we could introduce dynamic batch size and limit number of mini-batch in each epoch. 
+
+```python
+def get_dynamic_batch_size(nth_episode, episode_length):
+    """
+    Due to the length of episode is not fixed, if the mini-batch size is fixed, PPO policy update for each iteration will not be stable.
+    For example, if the episode length is short, a certain iteration will update policy a small number of times, let say 16 times.
+    Once the episode length is long, the policy will be updated a lot more times in one iteration, let say 160 times, which result in overfitting to a specific episode, result unstable.
+    We need to guarantee the policy shouldn't be updated to much within each policy iteration cycle.
+    Use dynamic mini-batch size to achieve two purpose:
+    1. initially, the batch size is small to ensure a quick training. Small batch is fast but high variance/unstable. we want it fast and high variance is acceptable initially. 
+    2. Following, the batch size will increase to ensure a stable finaly result. Mitigate the affect of high variance of episode length. 
+    3. finally, the min_num_minibatch_per_epoch will decide 4 mini-batch per epoch, each policy iteration will only update weights 4 times per epoch, avoid overfitting. 
+    """
+    mini_batch_size = hyperparameters['batch_size']
+    mini_num_minibatch = hyperparameters['min_num_minibatch_per_epoch']
+    batch_size = mini_batch_size + nth_episode # increase batch_size by 1 for each episode
+    if(episode_length <= mini_batch_size* mini_num_minibatch):
+        return mini_num_minibatch
+    if(episode_length  < batch_size * mini_num_minibatch):
+        batch_size = (episode_length - 1)//mini_num_minibatch + 1
+    return batch_size
+```
+![batch size and number of batch per epoch (policy iteration) optimizaiton](./fig/batch-optimization.png)
+- batch_size 32, fixed batch_size
+- batch_size 128, fixed batch_size
+- dynamic batch size, batch mini_batch_size 32, min_num_minibatch_per_epoch 4
+- dynamic batch size, batch mini_batch_size 32, min_num_minibatch_per_epoch 16
+
+## Why clearRL don't need dynamic batch size
+
+ClearRL always collect fixed number of steps, regardless if episode is completed or not. So in each policy update iteration, the number mini-batch is always the same.  
