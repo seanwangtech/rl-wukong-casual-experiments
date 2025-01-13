@@ -13,6 +13,17 @@ for reward, done in zip(reversed(rewards), reversed(next_dones)):
     returns.append(G)
 returns.reverse()
 ```
-- **Major**: In the ppo_agent.py, fixed normalization of advantages. Normalize the advantage in every mini-batch instead of whole episode. 
-- *Minor*: In the ppo_agent.py, duplicate smaple to integer number of mini-batch size to ensure the same size for each mini-batch. 
-- **Major**: normalize the observiation/model input. initially, I forget to divide the gym env observation by 255.0 to normalize data between 0 to 1. Therefore, the model doesn't work well, can only achieve Pong score around +14 and it take long time. After normalizaion, it converage much fast with much better result > +18 ??? to be confirmed. 
+- **Major**: In the ppo_agent.py, fixed normalization of advantages. Normalize the advantage in every mini-batch instead of whole episode.
+- *Minor*: In the ppo_agent.py, duplicate smaple to integer number of mini-batch size to ensure the same size for each mini-batch. Slightly increase model quality. 
+- *Minor*: normalize the observiation/model input. initially, I forget to divide the gym env observation by 255.0 to normalize data between 0 to 1. Therefore, the mode takes long time to converge. After normalizaion, it converage much fast. Slightly increase model quality. 
+- **Major**: entropy loss coefficient, revised from 0.1 to 0.01. Regarding Entropy Regularization, Paper suggest coefficient 0 to 0.01. Original setting is too large which result in unstable and bad result. cite from paper: The entropy coefficient is multiplied by the maximum possible entropy and added to loss. This helps prevent premature convergence of one action probability dominating the policy and preventing exploration. 
+
+## plots
+
+![trains history](./fig/train-result-and-algoirthm-tune.png)
+- Before repair issues
+- Nomalize the advance in mini-batch instead of whole episode and fixed the way to calculate returns
+- change (batch_size:256, update_epochs:10) to (batch_size:32, update_epochs:4)
+- Initialize model weights by using torch.nn.init.orthogonal_()
+- Normalize the input by divide x by 255.0
+- revised entropy loss coefficient from 0.1 to 0.01

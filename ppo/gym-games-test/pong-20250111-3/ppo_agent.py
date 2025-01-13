@@ -113,7 +113,7 @@ class PPOAgent:
                 value_loss = F.mse_loss(values, batch_returns)
 
                 # Total loss
-                loss = policy_loss + 0.5 * value_loss - 0.1 * entropy
+                loss = policy_loss + 0.5 * value_loss - 0.01 * entropy
 
                 # Update networks
                 self.optimizer.zero_grad()
