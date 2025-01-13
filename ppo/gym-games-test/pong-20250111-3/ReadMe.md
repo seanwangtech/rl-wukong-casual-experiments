@@ -20,8 +20,10 @@ returns.reverse()
 
 ## plots
 
+
+### Highligh issues repair plot 
+The notes for below plots, in the order of time.  
 ![trains history](./fig/train-result-and-algoirthm-tune.png)
-The notes for above graph, in the order of time.  
 - Before repair issues
 - Nomalize the advance in mini-batch instead of whole episode and fixed the way to calculate returns
 - change (batch_size:256, update_epochs:10) to (batch_size:32, update_epochs:4)
@@ -29,3 +31,10 @@ The notes for above graph, in the order of time.
 - Normalize the input by divide x by 255.0
 - revised entropy loss coefficient from 0.1 to 0.01
 - Increase the batch_size from 32 to 128 to stablize the output. 
+
+### entropy loss coefficient
+![alt text](fig/train-reults-entropy.png)
+- revised entropy coefficient 0.1
+- revised entropy coefficient 0.01 - first run 
+- revised entropy coefficient 0.01 - second run
+- revised entropy coefficient 0.01 - third run
