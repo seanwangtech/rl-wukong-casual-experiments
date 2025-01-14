@@ -84,10 +84,10 @@ def get_dynamic_batch_size(nth_episode, episode_length):
 
 ClearRL always collect fixed number of steps, regardless if episode is completed or not. So in each policy update iteration, the number mini-batch is always the same.  
 
-# other way to implement stablility
+# other way to improve stablility
 
 - Reduce the learning rate or learning rate anneal. 
 - clip on the value loss
 - nn.utils.clip_grad_norm_(self.model.parameters(), self.max_grad_norm) to limit max norm of grad before optimize
 - L1/L2 regularization
-  
+- multiple envs run in paralellel and train with fixed steps, e.g every 256 step and 8 envs. In this case, game play update policys every 256 step, for a 3000 episode, the policy updated almost 12 times, which act as averaged by 12 and give more stable output compared with large number stpes. 

@@ -48,7 +48,7 @@ env_id = "PongNoFrameskip-v4"
 env = make_env(env_id)
 model = PPOnn(env.action_space.n).to(device)
 
-# wei = torch.load("trains/model_1040.pth", weights_only=True)
+# wei = torch.load("trains-b/02-model_490-v5-long-ep.pth", weights_only=True)
 # model.load_state_dict(wei)
 @dataclass
 class Hyperparameters:
@@ -118,8 +118,7 @@ def obs2stateTensor(obs, show=False):
     if(show): 
         cv2.imshow('model input', state[3])
         cv2.waitKey(1)
-    state = torch.FloatTensor(state)
-    state = state/255.0
+    state = torch.tensor(np.array(state), dtype=torch.uint8)  # use uint8 to minimize the memory use
     # state = state.permute(2, 0, 1).contiguous()  # (H, W, C) -> C, H, W
     # state = (state - state.mean())/state.std() # normalize
     return state

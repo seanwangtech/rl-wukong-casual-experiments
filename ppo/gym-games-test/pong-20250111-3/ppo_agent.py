@@ -24,9 +24,9 @@ class PPOAgent:
     
     def select_action(self, state):
         """Select an action using the current policy."""
-        state = torch.FloatTensor(state).unsqueeze(0).to(self.device)
+        state = state.unsqueeze(0).to(self.device)
         with torch.no_grad():
-            logits, value = self.model(state)
+            logits, value = self.model(state/255.0)
 
         # Sample action from the policy
         action_distribution = torch.distributions.Categorical(logits=logits)
@@ -98,7 +98,7 @@ class PPOAgent:
                     batch_advantages = (batch_advantages - batch_advantages.mean()) / (batch_advantages.std() + 1e-8)
 
                 # Calculate new log probabilities and entropy
-                logits,values = self.model(batch_states)
+                logits,values = self.model(batch_states/255.0)
                 action_distribution = torch.distributions.Categorical(logits=logits)
                 new_log_probs = action_distribution.log_prob(batch_actions)
                 entropy = action_distribution.entropy().mean()
