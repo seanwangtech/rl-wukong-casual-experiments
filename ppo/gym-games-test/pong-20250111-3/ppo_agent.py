@@ -60,16 +60,16 @@ class PPOAgent:
             
             # Compute advantages using GAE
             advantages = self.compute_gae(rewards, values, next_dones)
-            advantages = torch.FloatTensor(advantages).to(self.device)
+            advantages = torch.tensor(advantages, device=self.device, dtype=torch.float32)
             # Normalize advantages for training stability
             # advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
             
             # Prepare tensors
             states = torch.stack(states).to(self.device)
-            actions = torch.LongTensor(actions).to(self.device)
+            actions = torch.tensor(actions, device=self.device, dtype=torch.long)
             # returns = torch.FloatTensor(returns).to(self.device)
-            returns = advantages + torch.FloatTensor(values).to(self.device)
-            old_log_probs = torch.FloatTensor(log_probs).to(self.device)
+            returns = advantages + torch.tensor(values,device=self.device, dtype=torch.float32)
+            old_log_probs = torch.tensor(log_probs, device=self.device, dtype=torch.float32)
 
         return states, actions, returns, old_log_probs, advantages
 
