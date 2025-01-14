@@ -53,14 +53,14 @@ model = PPOnn(env.action_space.n).to(device)
 @dataclass
 class Hyperparameters:
     episodes:int = int(1e9)
-    batch_size:int = 16 
+    batch_size:int = 32 
     update_epochs:int = 4
     learning_rate:float = 2.5e-4
     gamma:float = 0.99
     lam:float = 0.95
     clip_epsilon:float = 0.2
     dynamic_batch_size:bool = True 
-    min_num_minibatch_per_epoch:int = 64 # the nums of minibatch may less than 16 when the episode length is short, because it need to guarantee mini_batch_size.  
+    min_num_minibatch_per_epoch:int = 16 # the nums of minibatch may less than 16 when the episode length is short, because it need to guarantee mini_batch_size.  
 
 
 hyperparameters = Hyperparameters()
