@@ -32,7 +32,7 @@ def make_env(env_id):
     # env = gym.make(env_id, render_mode='human')
     env = gym.wrappers.RecordEpisodeStatistics(env)
     env = NoopResetEnv(env, noop_max=30)
-    # env = MaxAndSkipEnv(env, skip=4)
+    env = MaxAndSkipEnv(env, skip=4)
     env = EpisodicLifeEnv(env)
     if "FIRE" in env.unwrapped.get_action_meanings():
         env = FireResetEnv(env)
@@ -44,7 +44,7 @@ def make_env(env_id):
     return env
 
 # env = gym.make("PongNoFrameskip-v4", render_mode='rgb_array')
-env_id = "ALE/Pong-v5"
+env_id = "PongNoFrameskip-v4"
 env = make_env(env_id)
 model = PPOnn(env.action_space.n).to(device)
 
