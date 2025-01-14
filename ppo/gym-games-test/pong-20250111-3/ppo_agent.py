@@ -119,6 +119,7 @@ class PPOAgent:
                 # Update networks
                 self.optimizer.zero_grad()
                 loss.backward()
+                # nn.utils.clip_grad_norm_(self.model.parameters(), self.max_grad_norm)
                 self.optimizer.step()
 
         # Clear memory after each optimization step

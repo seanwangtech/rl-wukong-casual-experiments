@@ -83,3 +83,11 @@ def get_dynamic_batch_size(nth_episode, episode_length):
 ## Why clearRL don't need dynamic batch size
 
 ClearRL always collect fixed number of steps, regardless if episode is completed or not. So in each policy update iteration, the number mini-batch is always the same.  
+
+# other way to implement stablility
+
+- Reduce the learning rate or learning rate anneal. 
+- clip on the value loss
+- nn.utils.clip_grad_norm_(self.model.parameters(), self.max_grad_norm) to limit max norm of grad before optimize
+- L1/L2 regularization
+  
