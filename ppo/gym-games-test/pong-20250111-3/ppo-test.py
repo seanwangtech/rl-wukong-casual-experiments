@@ -18,6 +18,7 @@ import cv2
 import time
 import os
 import pandas as pd
+from dataclasses import dataclass
 
 from ppo_agent import PPOAgent
 from nn_model23 import PPOnn
@@ -31,7 +32,7 @@ def make_env(env_id):
     # env = gym.make(env_id, render_mode='human')
     env = gym.wrappers.RecordEpisodeStatistics(env)
     env = NoopResetEnv(env, noop_max=30)
-    env = MaxAndSkipEnv(env, skip=4)
+    # env = MaxAndSkipEnv(env, skip=4)
     env = EpisodicLifeEnv(env)
     if "FIRE" in env.unwrapped.get_action_meanings():
         env = FireResetEnv(env)
@@ -43,32 +44,35 @@ def make_env(env_id):
     return env
 
 # env = gym.make("PongNoFrameskip-v4", render_mode='rgb_array')
-env_id = "PongNoFrameskip-v4"
+env_id = "ALE/Pong-v5"
 env = make_env(env_id)
 model = PPOnn(env.action_space.n).to(device)
 
 # wei = torch.load("trains/model_1040.pth", weights_only=True)
 # model.load_state_dict(wei)
+@dataclass
+class Hyperparameters:
+    episodes:int = int(1e9)
+    batch_size:int = 16 
+    update_epochs:int = 4
+    learning_rate:float = 2.5e-4
+    gamma:float = 0.99
+    lam:float = 0.95
+    clip_epsilon:float = 0.2
+    dynamic_batch_size:bool = True 
+    min_num_minibatch_per_epoch:int = 64 # the nums of minibatch may less than 16 when the episode length is short, because it need to guarantee mini_batch_size.  
 
-hyperparameters = {
-    "episodes":int(1e9),
-    "batch_size":32, 
-    "update_epochs":4,
-    "learning_rate":2.5e-4,
-    "gamma":0.99,
-    "lam":0.95,
-    "clip_epsilon":0.2,
-    "dynamic_batch_size":True, 
-    "min_num_minibatch_per_epoch":16 # the nums of minibatch may less than 16 when the episode length is short, because it need to guarantee mini_batch_size.  
-}
-optimizer = optim.Adam(model.parameters(), lr = hyperparameters['learning_rate']) 
+
+hyperparameters = Hyperparameters()
+
+optimizer = optim.Adam(model.parameters(), lr = hyperparameters.learning_rate) 
 agent = PPOAgent(
     action_space=env.action_space, 
     model=model, 
     optimizer=optimizer, 
-    gamma= hyperparameters['gamma'], 
-    lam=hyperparameters['lam'], 
-    clip_epsilon=hyperparameters['clip_epsilon'], 
+    gamma= hyperparameters.gamma, 
+    lam=hyperparameters.lam, 
+    clip_epsilon=hyperparameters.clip_epsilon, 
     device=device
 )
 
@@ -78,7 +82,7 @@ writer.add_text(
     "hyperparameters",
     "|param|value|\n|-|-|\n%s" % (
         "\n".join([f"|{key}|{value}|" for key, value in 
-                   list(hyperparameters.items())
+                   list(vars(hyperparameters).items())
                    + [(key, repr(value)) for key, value in vars(agent).items()]
                    ])
     ),
@@ -96,8 +100,8 @@ def get_dynamic_batch_size(nth_episode, episode_length):
     2. Following, the batch size will increase to ensure a stable finaly result. Mitigate the affect of high variance of episode length. 
     3. finally, the min_num_minibatch_per_epoch will decide 4 mini-batch per epoch, each policy iteration will only update weights 4 times per epoch, avoid overfitting. 
     """
-    mini_batch_size = hyperparameters['batch_size']
-    mini_num_minibatch = hyperparameters['min_num_minibatch_per_epoch']
+    mini_batch_size = hyperparameters.batch_size
+    mini_num_minibatch = hyperparameters.min_num_minibatch_per_epoch
     batch_size = mini_batch_size + nth_episode # increase batch_size by 1 for each episode
     if(episode_length <= mini_batch_size* mini_num_minibatch):
         return mini_num_minibatch
@@ -121,9 +125,9 @@ def obs2stateTensor(obs, show=False):
     return state
 
 t1 = time.time()
-episodes = hyperparameters['episodes']
-batch_size = hyperparameters['batch_size']
-update_epochs = hyperparameters['update_epochs']
+episodes = hyperparameters.episodes
+batch_size = hyperparameters.batch_size
+update_epochs = hyperparameters.update_epochs
 for episode in range(episodes):
     state, _ = env.reset()
     state = obs2stateTensor(state, show=False)
@@ -159,7 +163,7 @@ for episode in range(episodes):
         # time.sleep(0.005)
     
     print('episode done, Training ...')
-    if(hyperparameters['dynamic_batch_size']):
+    if(hyperparameters.dynamic_batch_size):
         batch_size = get_dynamic_batch_size(episode, episode_steps)
     policy_loss, value_loss, entropy_loss, clipfrac = agent.optimize(epochs=update_epochs, batch_size=batch_size)
     
