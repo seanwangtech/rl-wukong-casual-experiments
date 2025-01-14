@@ -104,7 +104,7 @@ def get_dynamic_batch_size(nth_episode, episode_length):
     mini_num_minibatch = hyperparameters.min_num_minibatch_per_epoch
     batch_size = mini_batch_size + nth_episode # increase batch_size by 1 for each episode
     if(episode_length <= mini_batch_size* mini_num_minibatch):
-        return mini_num_minibatch
+        return mini_batch_size
     if(episode_length  < batch_size * mini_num_minibatch):
         batch_size = (episode_length - 1)//mini_num_minibatch + 1
     return batch_size
