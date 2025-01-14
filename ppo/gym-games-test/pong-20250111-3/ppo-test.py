@@ -28,6 +28,7 @@ print('torch device:',device)
 
 def make_env(env_id):
     env = gym.make(env_id)
+    # env = gym.make(env_id, render_mode='human')
     env = gym.wrappers.RecordEpisodeStatistics(env)
     env = NoopResetEnv(env, noop_max=30)
     env = MaxAndSkipEnv(env, skip=4)
@@ -45,6 +46,9 @@ def make_env(env_id):
 env_id = "PongNoFrameskip-v4"
 env = make_env(env_id)
 model = PPOnn(env.action_space.n).to(device)
+
+# wei = torch.load("trains/model_1040.pth", weights_only=True)
+# model.load_state_dict(wei)
 
 hyperparameters = {
     "episodes":int(1e9),
