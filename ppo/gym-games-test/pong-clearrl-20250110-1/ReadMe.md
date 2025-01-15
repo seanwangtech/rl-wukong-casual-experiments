@@ -9,3 +9,6 @@
 
 - model network structure
 
+# Appendix
+## Kaboom-v5, dqn vs PPO
+![Kaboom-v5](./fig/dqn-training-labels-2.png)
