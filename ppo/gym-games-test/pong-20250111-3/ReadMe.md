@@ -90,4 +90,16 @@ ClearRL always collect fixed number of steps, regardless if episode is completed
 - clip on the value loss
 - nn.utils.clip_grad_norm_(self.model.parameters(), self.max_grad_norm) to limit max norm of grad before optimize
 - L1/L2 regularization
-- multiple envs run in paralellel and train with fixed steps, e.g every 256 step and 8 envs. In this case, game play update policys every 256 step, for a 3000 episode, the policy updated almost 12 times, which act as averaged by 12 and give more stable output compared with large number stpes. 
+- multiple envs run in paralellel and train with fixed steps, e.g every 256 step and 8 envs. In this case, game play update policys every 256 step, for a 3000 episode, the policy updated almost 12 times, which act as averaged by 12 and give more stable output compared with large number stpes. The training will also be more generic and better. 
+
+# Appendix
+## Pong-V5 PPO
+
+![Pong-v5](./fig/ppo-pong-v5.png)
+- PPO: batch_size 16, dynamic_batch_size True min_num_minibatch_per_epoch 64
+- PPO: batch_size 32, dynamic_batch_size True min_num_minibatch_per_epoch 16
+
+## Kaboom PPO
+
+![Kaboom](./fig/ppo-kaboom-v5.png)
+- PPO: batch_size 128, dynamic_batch_size True min_num_minibatch_per_epoch 4
